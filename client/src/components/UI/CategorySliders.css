@@ -1,0 +1,14 @@
+/* CategorySliders.css */
+.category-swiper .swiper-pagination-bullet {
+    background: #86efac;
+    opacity: 0.5;
+    width: 8px;
+    height: 8px;
+}
+
+.category-swiper .swiper-pagination-bullet-active {
+    background: #10b981;
+    opacity: 1;
+    width: 10px;
+    height: 10px;
+}
