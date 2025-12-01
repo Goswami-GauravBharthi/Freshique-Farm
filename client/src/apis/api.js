@@ -47,6 +47,7 @@ export const addProductByFarmer = async (formData) => {
     });
     return data;
   } catch (error) {
+    return error;
     console.log("Error:", error.response.data);
   }
 };

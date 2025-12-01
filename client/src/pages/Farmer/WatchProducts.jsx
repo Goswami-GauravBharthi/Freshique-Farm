@@ -2,42 +2,20 @@ import React, { useState } from "react";
 import { Trash2, Package, IndianRupeeIcon } from "lucide-react";
 import { fetchFarmerProducts } from "../../apis/api";
 import { useQuery } from "@tanstack/react-query";
-// const products = [
-//   {
-//     _id: "1",
-//     name: "Fresh Organic Tomatoes",
-//     category: "vegetables",
-//     photos: ["https://example.com/tomato.jpg"],
-//     pricePerUnit: 2.99,
-//     quantityAvailable: 50,
-//     unit: "kg",
-//     location: { city: "Springfield" },
-//   },
-//   {
-//     _id: "2",
-//     name: "Fresh Organic Tomatoes",
-//     category: "vegetables",
-//     photos: ["https://example.com/tomato.jpg"],
-//     pricePerUnit: 2.99,
-//     quantityAvailable: 50,
-//     unit: "kg",
-//     location: { city: "Springfield" },
-//   },
-
-//   // ... more
-// ];
+import toast from "react-hot-toast";
 
 const FarmerProducts = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
 
-const { data, isLoading, isError } = useQuery({
-  queryKey: ["products"],
-  queryFn: fetchFarmerProducts,
-});
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["products"],
+    queryFn: fetchFarmerProducts,
+  });
 
-
-
+  if (isError) {
+    toast.error(error);
+  }
 
   const handleDeleteClick = (productId) => {
     setSelectedProductId(productId);
@@ -45,8 +23,8 @@ const { data, isLoading, isError } = useQuery({
   };
 
   const confirmDelete = () => {
-    console.log("Deleting product with ID:", selectedProductId);
-    // onDelete?.(selectedProductId); // Optional callback for parent
+
+    // Optional callback for parent
     setShowConfirm(false);
     setSelectedProductId(null);
   };
@@ -99,7 +77,7 @@ const { data, isLoading, isError } = useQuery({
 
 // Product Card Component
 const ProductCard = ({ product, onDelete }) => {
-  const firstImage = product.photos[0] || "/api/placeholder/300/200";
+  const firstImage = product.photos[0] ;
 
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-gray-200">
@@ -145,7 +123,6 @@ const ProductCard = ({ product, onDelete }) => {
               {product.quantityAvailable} {product.unit} available
             </span>
           </div>
-
         </div>
 
         {/* Delete Button */}

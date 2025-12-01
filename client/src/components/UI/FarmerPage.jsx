@@ -159,7 +159,7 @@ const BlogCard = ({ blog }) => {
     <motion.div
       whileHover={{ y: -8 }}
       className="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer group h-full flex flex-col"
-      onClick={() => navigate(`/blog/${blog._id}`)}
+      onClick={() => navigate(`/community/blog/${blog._id}`)}
     >
       <div className="relative aspect-video overflow-hidden">
         <img
