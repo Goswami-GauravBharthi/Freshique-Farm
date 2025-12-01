@@ -1,4 +1,5 @@
 // components/TopFarmersSection.jsx
+import React, { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Star, ShoppingBag, MapPin, Trophy } from "lucide-react";
@@ -11,45 +12,22 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-export default function TopFarmersSection() {
-  const navigate = useNavigate();
+// Create static arrays outside component to prevent reallocation
+const SKELETON_ARRAY = [...Array(5)];
+const STARS_ARRAY = [...Array(5)];
 
-  const { data: farmers = [], isLoading } = useQuery({
-    queryKey: ["top-farmers"],
-    queryFn: fetchTopFarmers,
-    staleTime: 1000 * 60 * 10,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl shadow-lg p-6 animate-pulse"
-              >
-                <div className="w-24 h-24 mx-auto bg-gray-200 rounded-full" />
-                <div className="h-6 bg-gray-200 rounded mt-4 w-32 mx-auto" />
-                <div className="h-4 bg-gray-200 rounded mt-2 w-24 mx-auto" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const FarmerCard = ({ farmer, index }) => (
+// 1. Extract FarmerCard outside and wrap in memo to prevent unnecessary re-renders
+const FarmerCard = memo(({ farmer, index, onNavigate }) => {
+  return (
     <motion.div
+      layout="position" // Optimize layout changes
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.1 }}
+      viewport={{ once: true, margin: "-50px" }} // Better trigger for mobile
+      transition={{ delay: index * 0.1, duration: 0.4 }}
       whileHover={{ y: -8, scale: 1.03 }}
       className="relative group cursor-pointer h-full"
-      onClick={() => navigate(`/farmerPage/${farmer.farmerId}`)}
+      onClick={() => onNavigate(farmer.farmerId)}
     >
       {index < 3 && (
         <div className="absolute -top-3 -right-3 z-10">
@@ -67,12 +45,13 @@ export default function TopFarmersSection() {
         </div>
       )}
 
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300 h-full flex flex-col transform-gpu">
         <div className="relative">
           <img
             src={farmer.profilePicture}
             alt={farmer.fullName}
-            className=" h-48 w-full object-cover"
+            loading="lazy" // Optimization for mobile data/loading
+            className="h-48 w-full object-cover"
           />
           <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-3 left-3 text-white">
@@ -93,7 +72,7 @@ export default function TopFarmersSection() {
           </p>
 
           <div className="flex items-center justify-center gap-1 mt-3">
-            {[...Array(5)].map((_, i) => (
+            {STARS_ARRAY.map((_, i) => (
               <Star
                 key={i}
                 size={16}
@@ -106,6 +85,55 @@ export default function TopFarmersSection() {
       </div>
     </motion.div>
   );
+});
+
+// Display name for debugging
+FarmerCard.displayName = "FarmerCard";
+
+export default function TopFarmersSection() {
+  const navigate = useNavigate();
+
+  const { data: farmers = [], isLoading } = useQuery({
+    queryKey: ["top-farmers"],
+    queryFn: fetchTopFarmers,
+    staleTime: 1000 * 60 * 10,
+    // Add keepPreviousData to prevent flashing during refetches
+    placeholderData: (previousData) => previousData,
+  });
+
+  // 2. memoize the navigation handler
+  const handleNavigate = useCallback(
+    (id) => {
+      navigate(`/farmerPage/${id}`);
+    },
+    [navigate]
+  );
+
+  // 3. Memoize the loading state UI
+  const LoadingSkeleton = useMemo(() => {
+    return (
+      <div className="py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {SKELETON_ARRAY.map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl shadow-lg p-6 animate-pulse"
+              >
+                <div className="w-24 h-24 mx-auto bg-gray-200 rounded-full" />
+                <div className="h-6 bg-gray-200 rounded mt-4 w-32 mx-auto" />
+                <div className="h-4 bg-gray-200 rounded mt-2 w-24 mx-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }, []); // Empty dependency array as it never changes
+
+  if (isLoading) {
+    return LoadingSkeleton;
+  }
 
   return (
     <section className="py-2 md:py-8 bg-linear-to-b from-lime-50 to-white">
@@ -136,14 +164,19 @@ export default function TopFarmersSection() {
             autoplay={{
               delay: 3000,
               disableOnInteraction: false,
+              pauseOnMouseEnter: true, // Better UX
             }}
             pagination={{ clickable: true }}
             className="pb-10"
           >
             {farmers.map((farmer, index) => (
               <SwiperSlide key={farmer.farmerId}>
-                <div className="px-4">
-                  <FarmerCard farmer={farmer} index={index} />
+                <div className="px-4 h-full">
+                  <FarmerCard
+                    farmer={farmer}
+                    index={index}
+                    onNavigate={handleNavigate}
+                  />
                 </div>
               </SwiperSlide>
             ))}
@@ -151,9 +184,14 @@ export default function TopFarmersSection() {
         </div>
 
         {/* Desktop/Tablet Grid - Hidden on mobile */}
-        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-6 ">
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {farmers.map((farmer, index) => (
-            <FarmerCard key={farmer.farmerId} farmer={farmer} index={index} />
+            <FarmerCard
+              key={farmer.farmerId}
+              farmer={farmer}
+              index={index}
+              onNavigate={handleNavigate}
+            />
           ))}
         </div>
       </div>
