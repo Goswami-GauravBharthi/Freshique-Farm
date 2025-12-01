@@ -25,10 +25,10 @@ export const setAuthCookie = (res, user) => {
 };
 
 export const clearAuthCookie = (res) => {
-  res.cookie("token", "", {
+  res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    expires: new Date(0),
+    sameSite: "none",  // Must match exactly
+    path: "/",         // Must match exactly
   });
 };

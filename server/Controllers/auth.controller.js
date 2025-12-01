@@ -127,8 +127,18 @@ export const login = async (req, res) => {
 
 // Logout
 export const logout = async (req, res) => {
-  clearAuthCookie(res);
-  res.status(200).json({ success: true, message: "Logout successful" });
+  try {
+    clearAuthCookie(res);
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed",
+    });
+  }
 };
 
 // Get Profile
