@@ -6,7 +6,7 @@ import TopFarmersSection from "../components/UI/home/TopFarmerSection";
 
 function Home() {
   return (
-    <div>
+    <div className="overflow-hidden">
       <HeroBannerSwiper />
       <HeroSwiper />
       <WhyChooseUs />

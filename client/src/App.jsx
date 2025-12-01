@@ -38,7 +38,7 @@ const App = () => {
   }, []);
 
   return (
-    <div className="bg-linear-to-br from-yellow-100 via-emerald-50 to-green-200 ">
+    <div className="bg-linear-to-br from-yellow-100 via-emerald-50 to-green-200 overflow-hidden ">
       <Toaster
         containerStyle={{
           zIndex: 9999, // HIGHER THAN ANY MODAL (even z-50 = 50)
