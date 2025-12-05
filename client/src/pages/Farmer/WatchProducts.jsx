@@ -1,16 +1,28 @@
 import React, { useState } from "react";
 import { Trash2, Package, IndianRupeeIcon } from "lucide-react";
-import { fetchFarmerProducts } from "../../apis/api";
-import { useQuery } from "@tanstack/react-query";
+import { fetchFarmerProducts, deleteProductByFarmer } from "../../apis/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 const FarmerProducts = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["products"],
     queryFn: fetchFarmerProducts,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteProductByFarmer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Product deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete product");
+    },
   });
 
   if (isError) {
@@ -23,7 +35,9 @@ const FarmerProducts = () => {
   };
 
   const confirmDelete = () => {
-
+    if (selectedProductId) {
+      deleteMutation.mutate(selectedProductId);
+    }
     // Optional callback for parent
     setShowConfirm(false);
     setSelectedProductId(null);
@@ -77,7 +91,7 @@ const FarmerProducts = () => {
 
 // Product Card Component
 const ProductCard = ({ product, onDelete }) => {
-  const firstImage = product.photos[0] ;
+  const firstImage = product.photos[0];
 
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-gray-200">

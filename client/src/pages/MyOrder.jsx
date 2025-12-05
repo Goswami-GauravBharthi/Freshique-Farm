@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Package,
@@ -18,7 +18,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { fetchUserOrders } from "../apis/api";
 import ProductLoading from "../components/UI/Loadings/ProductLoading";
-
 
 // --- Configuration ---
 const statusConfig = {
@@ -63,7 +62,7 @@ const statusConfig = {
 // --- Sub-Components ---
 
 // 1. Order Progress Tracker (Visual Stepper)
-const OrderTracker = ({ currentStatus }) => {
+const OrderTracker = React.memo(({ currentStatus }) => {
   if (currentStatus === "cancelled") return null;
 
   const steps = ["Confirmed", "Preparing", "On Way", "Delivered"];
@@ -112,21 +111,25 @@ const OrderTracker = ({ currentStatus }) => {
       </div>
     </div>
   );
-};
+});
 
 // 2. Single Order Card (Collapsible)
-const OrderCard = ({ order, index }) => {
+const OrderCard = React.memo(({ order, index }) => {
   const [isOpen, setIsOpen] = useState(false);
   const StatusIcon = statusConfig[order.status]?.icon || Clock;
   const statusStyles = statusConfig[order.status] || statusConfig.pending;
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  const formatDate = useMemo(
+    () =>
+      new Date(order.createdAt).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+    [order.createdAt]
+  );
+
+  const handleToggle = () => setIsOpen(!isOpen);
 
   return (
     <motion.div
@@ -142,7 +145,7 @@ const OrderCard = ({ order, index }) => {
     >
       {/* --- Card Header (Always Visible) --- */}
       <div
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="p-5 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white hover:bg-gray-50/50 transition-colors"
       >
         <div className="flex items-center gap-4">
@@ -161,8 +164,7 @@ const OrderCard = ({ order, index }) => {
               </span>
             </div>
             <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-              <Calendar size={12} /> {formatDate(order.createdAt)} •{" "}
-              {order.items.length} Items
+              <Calendar size={12} /> {formatDate} • {order.items.length} Items
             </p>
           </div>
         </div>
@@ -303,12 +305,11 @@ const OrderCard = ({ order, index }) => {
       </AnimatePresence>
     </motion.div>
   );
-};
+});
 
 // --- Main Page Component ---
 
 export default function MyOrdersPage() {
-
   const [filter, setFilter] = useState("all"); // all, active, completed
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["userOrders"],
@@ -318,16 +319,25 @@ export default function MyOrdersPage() {
   const orders = data?.orders || [];
 
   // Filter Logic
-  const filteredOrders = orders.filter((order) => {
-    if (filter === "all") return true;
-    if (filter === "active")
-      return ["pending", "confirmed", "preparing", "out_for_delivery"].includes(
-        order.status
-      );
-    if (filter === "completed")
-      return ["delivered", "cancelled"].includes(order.status);
-    return true;
-  });
+  const filteredOrders = useMemo(
+    () =>
+      orders.filter((order) => {
+        if (filter === "all") return true;
+        if (filter === "active")
+          return [
+            "pending",
+            "confirmed",
+            "preparing",
+            "out_for_delivery",
+          ].includes(order.status);
+        if (filter === "completed")
+          return ["delivered", "cancelled"].includes(order.status);
+        return true;
+      }),
+    [orders, filter]
+  );
+
+  const handleFilterChange = (newFilter) => setFilter(newFilter);
 
   if (isLoading) return <ProductLoading />;
 
@@ -368,7 +378,7 @@ export default function MyOrdersPage() {
             {["all", "active", "completed"].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setFilter(tab)}
+                onClick={() => handleFilterChange(tab)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   filter === tab
                     ? "bg-green-600 text-white shadow-md"

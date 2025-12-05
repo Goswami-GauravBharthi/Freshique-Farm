@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authMiddleware, { authFarm } from "../middleware/auth.middleware.js";
 import {
+    deleteProduct,
   get_all_products,
   get_products_farmer,
   get_single_product,
@@ -33,6 +34,8 @@ productRouter.get(
   authFarm,
   get_products_farmer
 );
+
+productRouter.delete("/:id", authMiddleware, authFarm, deleteProduct);
 
 productRouter.get("/:id", get_single_product);
 

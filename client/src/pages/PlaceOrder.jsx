@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
@@ -30,6 +30,124 @@ const deliveryAreas = [
   "Sardarnagar",
   "Nana Mava Road",
 ];
+
+const ProductItem = React.memo(({ item }) => (
+  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+    <img
+      src={item.image}
+      alt={item.name}
+      className="w-16 h-16 object-cover rounded-lg"
+    />
+    <div className="flex-1">
+      <h4 className="font-semibold text-gray-800">{item.name}</h4>
+      <p className="text-sm text-gray-500">₹{item.price}/kg</p>
+    </div>
+    <div className="text-right">
+      <p className="text-lg font-bold">
+        ₹{(item.price * item.quantity).toFixed(2)}
+      </p>
+      <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+    </div>
+  </div>
+));
+
+const AddressItem = React.memo(
+  ({
+    addr,
+    index,
+    selectedAddressId,
+    setSelectedAddressId,
+    handleDeleteAddress,
+  }) => (
+    <label
+      key={index}
+      className={`block p-5 rounded-xl border-2 cursor-pointer transition-all ${
+        selectedAddressId === index
+          ? "border-green-500 bg-green-50 shadow-md"
+          : "border-gray-200 hover:border-gray-300"
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-start">
+          <input
+            type="radio"
+            name="address"
+            checked={selectedAddressId === index}
+            onChange={() => setSelectedAddressId(index)}
+            className="hidden"
+          />
+          <div className="ml-4">
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-lg">Home</p>
+            </div>
+            <p className="font-medium">
+              {addr.fullName} • {addr.phone}
+            </p>
+            <p className="text-gray-600 text-sm mt-1">
+              {addr.address ? `${addr.address}, ` : ""}
+              {addr.area}, {addr.city} - {addr.pin_code}
+            </p>
+          </div>
+        </div>
+
+        {!addr.isDefault && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteAddress(index);
+            }}
+            className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+    </label>
+  )
+);
+
+const PaymentOption = React.memo(
+  ({
+    type,
+    label,
+    subLabel,
+    icon: Icon,
+    checked,
+    onChange,
+    disabled = false,
+    comingSoon = false,
+  }) => (
+    <label
+      className={`flex items-center p-4 border rounded-xl cursor-pointer ${
+        disabled
+          ? "cursor-not-allowed opacity-70 hover:bg-gray-50"
+          : "hover:bg-gray-50"
+      }`}
+    >
+      <input
+        type="radio"
+        name="payment"
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        className={`w-5 h-5 ${disabled ? "text-gray-400" : "text-green-600"}`}
+      />
+      <span className="ml-4 flex-1">
+        <p className={`font-medium ${disabled ? "text-gray-500" : ""}`}>
+          {label}
+        </p>
+        {comingSoon ? (
+          <p className="text-xs text-orange-600">Feature available soon</p>
+        ) : (
+          <p className="text-sm text-gray-500">{subLabel}</p>
+        )}
+      </span>
+      <Icon
+        className={`w-6 h-6 ${disabled ? "text-gray-400" : "text-gray-600"}`}
+      />
+    </label>
+  )
+);
 
 export default function PlaceOrderPage() {
   const navigate = useNavigate();
@@ -69,50 +187,77 @@ export default function PlaceOrderPage() {
   }, []);
 
   // Save to localStorage whenever temp addresses change
-  const saveToLocalStorage = (addrList) => {
+  const saveToLocalStorage = useCallback((addrList) => {
     localStorage.setItem("tempAddresses", JSON.stringify(addrList));
-  };
+  }, []);
 
-  const handleDeleteAddress = (index) => {
-    const updated = addresses.filter((_, i) => i !== index);
-    setAddresses(updated);
-    saveToLocalStorage(updated);
-    if (selectedAddressId === index) {
-      setSelectedAddressId(null); // or default one later
-    }
-  };
+  const handleDeleteAddress = useCallback(
+    (index) => {
+      const updated = addresses.filter((_, i) => i !== index);
+      setAddresses(updated);
+      saveToLocalStorage(updated);
+      if (selectedAddressId === index) {
+        setSelectedAddressId(null); // or default one later
+      }
+    },
+    [addresses, selectedAddressId, saveToLocalStorage]
+  );
 
-  const handleAddTempAddress = (newAddr) => {
-    const newAddress = {
-      ...newAddr,
-    };
-    const updated = [...addresses, newAddress];
-    setAddresses(updated);
-    saveToLocalStorage(updated);
-    setSelectedAddressId(newAddress.id);
-    setIsAddingAddress(false);
-  };
+  const handleAddTempAddress = useCallback(
+    (newAddr) => {
+      const newAddress = {
+        ...newAddr,
+        id: Date.now(), // Ensure unique id
+      };
+      const updated = [...addresses, newAddress];
+      setAddresses(updated);
+      saveToLocalStorage(updated);
+      setSelectedAddressId(updated.length - 1);
+      setIsAddingAddress(false);
+    },
+    [addresses, saveToLocalStorage]
+  );
 
-  const handlePlaceOrder = async() => {
+  const handlePlaceOrder = useCallback(async () => {
     if (addresses.length === 0) {
       alert("Please add a delivery address");
       return;
     }
-    const shippingAddress=addresses[selectedAddressId];
+    const shippingAddress = addresses[selectedAddressId];
 
-    const res=await placeOrder({shippingAddress,paymentMethod,deliveryCharge})
-   
-    if(res.success){
-        setShowSuccess(true);
-        setTimeout(()=>{
-            navigate("/my-orders");
-               dispatch(fetchCart());
-        },4000)
+    const res = await placeOrder({
+      shippingAddress,
+      paymentMethod,
+      deliveryCharge,
+    });
+
+    if (res.success) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate("/my-orders");
+        dispatch(fetchCart());
+      }, 4000);
     }
-    // console.log("Final Shipping Address →", addresses[selectedAddressId]);
-    // console.log("Payment Method →", paymentMethod);
-    // setShowSuccess(true);
-  };
+  }, [
+    addresses,
+    selectedAddressId,
+    paymentMethod,
+    deliveryCharge,
+    navigate,
+    dispatch,
+  ]);
+
+  const handleUPIChange = useCallback(() => {
+    alert("UPI Payment is coming soon!");
+  }, []);
+
+  const handleAddAddressClick = useCallback(() => {
+    setIsAddingAddress(true);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setIsAddingAddress(false);
+  }, []);
 
   return (
     <>
@@ -141,32 +286,7 @@ export default function PlaceOrderPage() {
                 </h2>
                 <div className="space-y-4">
                   {cartItems?.map((item) => (
-                    <div
-                      key={item._id}
-                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-800">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          ₹{item.price}/kg
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">
-                          ₹{(item.price * item.quantity).toFixed(2)}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Qty: {item.quantity}
-                        </p>
-                      </div>
-                    </div>
+                    <ProductItem key={item._id} item={item} />
                   ))}
                 </div>
               </motion.div>
@@ -184,7 +304,7 @@ export default function PlaceOrderPage() {
                     Delivery Address
                   </h2>
                   <button
-                    onClick={() => setIsAddingAddress(true)}
+                    onClick={handleAddAddressClick}
                     className="text-green-600 font-medium flex items-center hover:bg-green-50 px-4 py-2 rounded-lg transition"
                   >
                     <Plus className="w-5 h-5 mr-1" />
@@ -194,50 +314,14 @@ export default function PlaceOrderPage() {
 
                 <div className="space-y-4">
                   {addresses.map((addr, index) => (
-                    <label
+                    <AddressItem
                       key={index}
-                      className={`block p-5 rounded-xl border-2 cursor-pointer transition-all ${
-                        selectedAddressId === index
-                          ? "border-green-500 bg-green-50 shadow-md"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start">
-                          <input
-                            type="radio"
-                            name="address"
-                            checked={selectedAddressId === index}
-                            onChange={() => setSelectedAddressId(index)}
-                            className="hidden"
-                          />
-                          <div className="ml-4">
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-lg">Home</p>
-                            </div>
-                            <p className="font-medium">
-                              {addr.fullName} • {addr.phone}
-                            </p>
-                            <p className="text-gray-600 text-sm mt-1">
-                              {addr.address ? `${addr.address}, ` : ""}
-                              {addr.area}, {addr.city} - {addr.pin_code}
-                            </p>
-                          </div>
-                        </div>
-
-                        {!addr.isDefault && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAddress(index);
-                            }}
-                            className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        )}
-                      </div>
-                    </label>
+                      addr={addr}
+                      index={index}
+                      selectedAddressId={selectedAddressId}
+                      setSelectedAddressId={setSelectedAddressId}
+                      handleDeleteAddress={handleDeleteAddress}
+                    />
                   ))}
                 </div>
               </motion.div>
@@ -266,51 +350,32 @@ export default function PlaceOrderPage() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between font-bold text-xl">
                       <span>Total</span>
-                      <span className="text-green-600">₹{total.toFixed(2)}</span>
+                      <span className="text-green-600">
+                        ₹{total.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-8 space-y-4">
                   <h3 className="font-semibold text-lg mb-3">Payment Method</h3>
-                  <label className="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "cod"}
-                      onChange={() => setPaymentMethod("cod")}
-                      className="w-5 h-5 text-green-600"
-                    />
-                    <span className="ml-4 flex-1">
-                      <p className="font-medium">Cash on Delivery</p>
-                      <p className="text-sm text-gray-500">
-                        Pay when you receive
-                      </p>
-                    </span>
-                    <Wallet className="w-6 h-6 text-gray-600" />
-                  </label>
-
-                  <label className="flex items-center p-4 border rounded-xl cursor-not-allowed opacity-70">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "upi"}
-                      onChange={() => {
-                        setPaymentMethod("upi");
-                        alert("UPI Payment is coming soon!");
-                      }}
-                      className="w-5 h-5 text-gray-400"
-                    />
-                    <span className="ml-4 flex-1">
-                      <p className="font-medium text-gray-500">
-                        UPI / Card / Netbanking
-                      </p>
-                      <p className="text-xs text-orange-600">
-                        Feature available soon
-                      </p>
-                    </span>
-                    <CreditCard className="w-6 h-6 text-gray-400" />
-                  </label>
+                  <PaymentOption
+                    type="cod"
+                    label="Cash on Delivery"
+                    subLabel="Pay when you receive"
+                    icon={Wallet}
+                    checked={paymentMethod === "cod"}
+                    onChange={() => setPaymentMethod("cod")}
+                  />
+                  <PaymentOption
+                    type="upi"
+                    label="UPI / Card / Netbanking"
+                    icon={CreditCard}
+                    checked={paymentMethod === "upi"}
+                    onChange={handleUPIChange}
+                    disabled={true}
+                    comingSoon={true}
+                  />
                 </div>
 
                 <motion.button
@@ -332,7 +397,7 @@ export default function PlaceOrderPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 bg-linear-to-b from-black/60 via-gray-900/50 to-black/60 z-50 flex items-center justify-center p-4"
             >
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -361,7 +426,7 @@ export default function PlaceOrderPage() {
         <AnimatePresence>
           {isAddingAddress && (
             <AddAddressModal
-              onClose={() => setIsAddingAddress(false)}
+              onClose={handleModalClose}
               onSave={handleAddTempAddress}
             />
           )}
@@ -372,7 +437,7 @@ export default function PlaceOrderPage() {
 }
 
 // UPDATED MODAL ONLY - Matches your exact schema
-function AddAddressModal({ onClose, onSave }) {
+const AddAddressModal = React.memo(({ onClose, onSave }) => {
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -382,28 +447,38 @@ function AddAddressModal({ onClose, onSave }) {
     pin_code: "",
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.fullName || !form.phone || !form.area) {
-      alert("Please fill Full Name, Phone and select Area");
-      return;
-    }
+  const handleChange = useCallback(
+    (field) => (e) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    },
+    []
+  );
 
-    onSave({
-      fullName: form.fullName,
-      phone: form.phone,
-      address: form.address,
-      area: form.area,
-      city: form.city,
-      pin_code: form.pin_code,
-    });
-  };
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (!form.fullName || !form.phone || !form.area) {
+        alert("Please fill Full Name, Phone and select Area");
+        return;
+      }
+
+      onSave({
+        fullName: form.fullName,
+        phone: form.phone,
+        address: form.address,
+        area: form.area,
+        city: form.city,
+        pin_code: form.pin_code,
+      });
+    },
+    [form, onSave]
+  );
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-linear-to-b from-black/50 via-gray-900/30 to-black/50 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
@@ -419,7 +494,7 @@ function AddAddressModal({ onClose, onSave }) {
             placeholder="Full Name"
             className="w-full p-4 border rounded-xl"
             value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+            onChange={handleChange("fullName")}
             required
           />
           <input
@@ -427,7 +502,7 @@ function AddAddressModal({ onClose, onSave }) {
             placeholder="Phone Number"
             className="w-full p-4 border rounded-xl"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            onChange={handleChange("phone")}
             required
           />
 
@@ -435,7 +510,7 @@ function AddAddressModal({ onClose, onSave }) {
           <select
             className="w-full p-4 border rounded-xl text-gray-700"
             value={form.area}
-            onChange={(e) => setForm({ ...form, area: e.target.value })}
+            onChange={handleChange("area")}
             required
           >
             <option value="">Select Delivery Area</option>
@@ -452,7 +527,7 @@ function AddAddressModal({ onClose, onSave }) {
             placeholder="House / Flat No, Building Name, Landmark (Optional)"
             className="w-full p-4 border rounded-xl"
             value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            onChange={handleChange("address")}
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -464,8 +539,9 @@ function AddAddressModal({ onClose, onSave }) {
             />
             <input
               type="text"
+              placeholder="Pincode"
               value={form.pin_code}
-              onChange={(e) => setForm({ ...form, pin_code: e.target.value })}
+              onChange={handleChange("pin_code")}
               className="p-4 border rounded-xl bg-gray-50"
             />
           </div>
@@ -489,4 +565,4 @@ function AddAddressModal({ onClose, onSave }) {
       </motion.div>
     </motion.div>
   );
-}
+});

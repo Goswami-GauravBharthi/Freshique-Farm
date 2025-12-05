@@ -1,84 +1,107 @@
-// components/BlogCard.jsx
-import { motion } from "framer-motion";
+import { memo, useCallback, useMemo } from "react";
 import { MapPin, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useLikeBlog } from "../../../hooks/useLikeBlog";
 import { useSelector } from "react-redux";
+import { useLikeBlog } from "../../../hooks/useLikeBlog";
 import LikeButton from "./LikeBtnFOrBlog";
 
 const formatDate = (dateString) => {
+  if (!dateString) return "";
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-IN", {
+  return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  });
+  }).format(date);
 };
 
-const BlogCard = ({ blog }) => {
+const BlogCard = memo(({ blog }) => {
   const navigate = useNavigate();
   const { mutate: likeBlog, isPending } = useLikeBlog();
 
-  const {user}=useSelector((state)=>state.auth)
-  const userId = user?._id;
-  const isLiked = blog.likes.includes(userId);
+  
+  const userId = useSelector((state) => state.auth.user?._id);
+  const isLiked = useMemo(
+    () => blog.likes?.includes(userId),
+    [blog.likes, userId]
+  );
 
-  const handleLike = () => {
-    likeBlog(blog._id);
-  };
+  // 3. OPTIMIZATION: Stable event handlers to prevent child re-renders
+  const handleCardClick = useCallback(() => {
+    navigate(`/community/blog/${blog._id}`);
+  }, [navigate, blog._id]);
+
+  const handleAuthorClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      navigate(`/farmerPage/${blog.author._id}`);
+    },
+    [navigate, blog.author._id]
+  );
+
+  const handleLikeClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      likeBlog(blog._id);
+    },
+    [likeBlog, blog._id]
+  );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8 }}
-      className="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer group"
-      onClick={() => navigate(`/community/blog/${blog._id}`)}
+    <div
+      className="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer group 
+                 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-xl will-change-transform"
+      onClick={handleCardClick}
     >
-      <div className="relative overflow-hidden">
+      {/* Image Section */}
+      <div className="relative overflow-hidden h-56 bg-gray-100">
         <img
           src={blog.image}
           alt={blog.title}
-          className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
+          loading="lazy" // Native lazy loading
+          decoding="async" // Unblocks main thread during decoding
+          className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
+      {/* Content Section */}
       <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-800 line-clamp-2 group-hover:text-green-600 transition">
+        <h3 className="text-xl font-bold text-gray-800 line-clamp-2 transition-colors duration-300 group-hover:text-green-600">
           {blog.title}
         </h3>
 
-        <p className="text-gray-600 mt-3 line-clamp-3">{blog.description}</p>
+        <p className="text-gray-600 mt-3 line-clamp-3 text-sm leading-relaxed">
+          {blog.description}
+        </p>
 
-        <div className="flex items-center gap-3 mt-5">
+        {/* Author & Meta */}
+        <div className="flex items-center gap-3 mt-5 pt-4 border-t border-gray-100">
           <img
-            src={blog.author.profilePicture}
-            alt=""
-            className="w-12 h-12 rounded-full border-2 border-green-500 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/farmerPage/${blog.author._id}`);
-            }}
+            src={blog.author.profilePicture || "https://placehold.co/48"}
+            alt={blog.author.fullName}
+            loading="lazy"
+            className="w-10 h-10 rounded-full border border-gray-200 object-cover hover:border-green-500 transition-colors"
+            onClick={handleAuthorClick}
           />
-          <div>
+
+          <div className="flex-1 min-w-0">
             <p
-              className="font-semibold text-gray-800 cursor-pointer hover:text-green-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/farmerPage/${blog.author._id}`);
-              }}
+              className="font-semibold text-gray-800 text-sm truncate hover:text-green-600 transition-colors"
+              onClick={handleAuthorClick}
             >
               {blog.author.fullName}
             </p>
-            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-              <span className="flex items-center gap-1">
-                <Calendar size={14} />
+
+            <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+              <span className="flex items-center gap-1 shrink-0">
+                <Calendar size={12} className="text-gray-400" />
                 {formatDate(blog.createdAt)}
               </span>
+
               {blog.author.location?.city && (
-                <span className="flex items-center gap-1">
-                  <MapPin size={14} />
+                <span className="flex items-center gap-1 truncate">
+                  <MapPin size={12} className="text-gray-400" />
                   {blog.author.location.city}
                 </span>
               )}
@@ -86,20 +109,21 @@ const BlogCard = ({ blog }) => {
           </div>
         </div>
 
-        <div className="mt-6">
+        {/* Like Button */}
+        <div className="mt-4 flex justify-end">
           <LikeButton
             isLiked={isLiked}
             likesCount={blog.likes.length}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLike();
-            }}
+            onClick={handleLikeClick}
             isLoading={isPending}
           />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
-};
+});
+
+// Helpful for React DevTools debugging
+BlogCard.displayName = "BlogCard";
 
 export default BlogCard;

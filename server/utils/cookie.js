@@ -27,7 +27,7 @@ export const setAuthCookie = (res, user) => {
 export const clearAuthCookie = (res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true, // Force true in production   
     sameSite: "none",  // Must match exactly
     path: "/",         // Must match exactly
   });

@@ -1,39 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useState, memo } from "react";
+import { Filter } from "lucide-react"; // Assuming you have lucide-react, or use standard text
 import SearchFilterBar from "../components/UI/FilterSection";
 import ProductList from "../components/UI/ProductList";
 
-const Marketplace = () => {
-  const dispatch = useDispatch();
-  
 
+const MemoizedProductList = memo(ProductList);
+
+const Marketplace = () => {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-
-  const toggleFilter = () => {
-    setShowMobileFilter((prev) => !prev);
-  };
-
   return (
-    <div className="container mx-auto p-3">
-      {/* Toggle button for mobile */}
-      <p
-        className="sm:hidden block text-green-800 font-medium cursor-pointer pt-2"
-        onClick={toggleFilter}
-      >
-        Filter {showMobileFilter ? "▲" : "▼"}
-      </p>
+    <div className="container mx-auto p-3 min-h-screen">
+      {/* Mobile Toggle Button */}
+     
+      <div className="sm:hidden block pt-2 mb-4">
+        <button
+          onClick={() => setShowMobileFilter((prev) => !prev)}
+          className="flex items-center gap-2 text-green-800 font-bold bg-green-50 px-5 py-2.5 rounded-full transition-transform active:scale-95 shadow-sm border border-green-100"
+        >
+          <Filter size={16} />
+          Filters
+          <span className="text-xs ml-1">{showMobileFilter ? "▲" : "▼"}</span>
+        </button>
+      </div>
 
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out
-    sm:opacity-100 sm:max-h-none sm:overflow-visible
-    ${showMobileFilter ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}
-  `}
+        className={`
+          overflow-hidden transition-all duration-300 ease-in-out will-change-[max-height,opacity]
+          sm:opacity-100 sm:max-h-none sm:overflow-visible sm:mb-8
+          ${
+            showMobileFilter
+              ? "max-h-[800px] opacity-100 mb-6"
+              : "max-h-0 opacity-0"
+          }
+        `}
       >
         <SearchFilterBar />
       </div>
 
-      <ProductList />
+      <div
+        className="relative"
+        style={{ contentVisibility: "auto", containIntrinsicSize: "1000px" }}
+      >
+        <MemoizedProductList />
+      </div>
     </div>
   );
 };

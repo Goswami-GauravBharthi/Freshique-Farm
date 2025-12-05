@@ -1,17 +1,161 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+
+// Optimized: Define animation variants outside component to prevent recreation on render
+const FADE_IN_LEFT = {
+  hidden: { opacity: 0, x: -50 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+};
+
+const FLOAT_ANIMATION = {
+  animate: {
+    y: [-10, 10, -10],
+    transition: {
+      duration: 6,
+      ease: "easeInOut",
+      repeat: Infinity,
+    },
+  },
+};
+
+const MAIN_IMG_VARIANTS = {
+  hidden: { opacity: 0, y: 50, rotate: 5 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    rotate: 0,
+    transition: { duration: 0.8, delay: 0.2 },
+  },
+};
+
+// Optimized: Extract static icons and wrap in memo to prevent re-renders
+const ArrowRight = memo(({ className }) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 5l7 7-7 7"
+    />
+  </svg>
+));
+
+const CheckBadge = memo(({ className }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 20 20">
+    <path
+      fillRule="evenodd"
+      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+      clipRule="evenodd"
+    />
+  </svg>
+));
+
+const LeafIcon = memo(({ className }) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+    />
+  </svg>
+));
+
+const Bird = memo(() => (
+  <svg width="50" height="40" viewBox="0 0 50 40" fill="none">
+    <path
+      d="M10 20 Q 5 15, 0 20 Q 5 25, 10 20"
+      stroke="#1f2937"
+      strokeWidth="2"
+    />
+    <path
+      d="M40 20 Q 45 15, 50 20 Q 45 25, 40 20"
+      stroke="#1f2937"
+      strokeWidth="2"
+    />
+  </svg>
+));
+
+// Optimized: Heavy background scene memoized.
+// It will NOT re-render when the parent 'loaded' state changes.
+const FarmScene = memo(() => {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+      <div className="absolute inset-0 bg-linear-to-b from-sky-200/20 to-transparent" />
+
+      {/* Animated Sun - Use simple CSS animation for better performance than JS */}
+      <div
+        className="absolute top-10 right-20 w-24 h-24 md:w-32 md:h-32 
+                bg-linear-to-br from-yellow-300 to-amber-400 
+                rounded-full 
+                shadow-lg
+                shadow-yellow-400/50 
+                blur-sm 
+                animate-pulse"
+      />
+
+      {/* Hills SVG - Static */}
+      <svg
+        className="absolute bottom-0 w-full h-48 lg:h-64 transition-all duration-500"
+        viewBox="0 0 1440 320"
+        preserveAspectRatio="none"
+      >
+        <path
+          fill="#86efac"
+          fillOpacity="0.4"
+          d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,133.3C672,117,768,139,864,165.3C960,192,1056,224,1152,213.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L0,320Z"
+        />
+        <path
+          fill="#4ade80"
+          fillOpacity="0.2"
+          d="M0,224L48,197.3C96,171,192,117,288,112C384,107,480,149,576,165.3C672,181,768,171,864,154.7C960,139,1056,117,1152,122.7C1248,128,1344,160,1392,176L1440,192L1440,320L0,320Z"
+        />
+      </svg>
+
+      {/* Birds - Optimized motion div */}
+      <motion.div
+        animate={{ x: [0, 100], y: [0, -30, 10] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        className="absolute top-24 left-1/3 opacity-60 will-change-transform"
+      >
+        <Bird />
+      </motion.div>
+    </div>
+  );
+});
 
 export default function PremiumFarmHero() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setLoaded(true);
+    // Small timeout ensures the DOM is painted before triggering the entrance
+    const timer = requestAnimationFrame(() => setLoaded(true));
+    return () => cancelAnimationFrame(timer);
   }, []);
+
+  // Optimized: Memoize static data to prevent array recreation on every render
+  const trustBadges = useMemo(
+    () => ["Verified Farmers", "Carbon Neutral", "1M+ Happy Homes"],
+    []
+  );
 
   return (
     <section className="relative min-h-[90vh] lg:min-h-screen flex items-center overflow-hidden bg-linear-to-b from-sky-50 via-emerald-50/50 to-lime-50">
-      {/* Animated Farm Background */}
       <FarmScene />
 
       {/* Main Content */}
@@ -19,9 +163,9 @@ export default function PremiumFarmHero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Text & CTA */}
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={loaded ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            variants={FADE_IN_LEFT}
+            initial="hidden"
+            animate={loaded ? "visible" : "hidden"}
             className="text-center lg:text-left space-y-8 order-2 lg:order-1"
           >
             <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-emerald-100 shadow-sm mb-4">
@@ -55,7 +199,7 @@ export default function PremiumFarmHero() {
                 <span className="absolute inset-0 w-full h-full bg-linear-to-r from-emerald-600 to-teal-600 opacity-100 group-hover:opacity-90 transition-opacity" />
                 <span className="relative flex items-center gap-3">
                   Start Shopping
-                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition" />
+                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Link>
 
@@ -69,53 +213,50 @@ export default function PremiumFarmHero() {
 
             {/* Trust Badges */}
             <div className="flex flex-wrap justify-center lg:justify-start gap-y-3 gap-x-6 text-sm text-slate-600 pt-4">
-              {["Verified Farmers", "Carbon Neutral", "1M+ Happy Homes"].map(
-                (text) => (
-                  <div
-                    key={text}
-                    className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-lg border border-emerald-50"
-                  >
-                    <CheckBadge className="w-5 h-5 text-emerald-600" />
-                    <span className="font-medium">{text}</span>
-                  </div>
-                )
-              )}
+              {trustBadges.map((text) => (
+                <div
+                  key={text}
+                  className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-lg border border-emerald-50"
+                >
+                  <CheckBadge className="w-5 h-5 text-emerald-600" />
+                  <span className="font-medium">{text}</span>
+                </div>
+              ))}
             </div>
           </motion.div>
 
           {/* Right: Visuals & Composition */}
-          <div className="relative order-2  flex justify-center items-center perspective-1000">
-            {/* Abstract Blobs Background */}
+          <div className="relative order-2 flex justify-center items-center perspective-1000">
+            {/* Abstract Blobs Background - GPU Optimized */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1 }}
               className="absolute inset-0 flex items-center justify-center z-0"
             >
-              <div className="w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] bg-linear-to-tr from-emerald-200/40 to-lime-200/40 rounded-full blur-3xl animate-pulse" />
+              <div className="w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] bg-linear-to-tr from-emerald-200/40 to-lime-200/40 rounded-full blur-3xl animate-pulse will-change-transform" />
             </motion.div>
 
             {/* Main Image Container */}
             <motion.div
-              initial={{ opacity: 0, y: 50, rotate: 5 }}
-              animate={loaded ? { opacity: 1, y: 0, rotate: 0 } : {}}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              variants={MAIN_IMG_VARIANTS}
+              initial="hidden"
+              animate={loaded ? "visible" : "hidden"}
               className="relative z-10 w-full max-w-[500px]"
             >
               {/* The Main Product Image - Masked for organic feel */}
               <div className="relative">
                 <motion.div
-                  animate={{ y: [-10, 10, -10] }}
-                  transition={{
-                    duration: 6,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                  }}
-                  className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-emerald-900/20 border-4 border-white/80"
+                  variants={FLOAT_ANIMATION}
+                  animate="animate"
+                  className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-emerald-900/20 border-4 border-white/80 will-change-transform transform-gpu"
                 >
                   <img
-                    src="https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1000&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop"
                     alt="Fresh organic vegetables in a basket"
+                    fetchPriority="high" // Optimization: Prioritize loading this image
+                    width="500" // Optimization: Prevent layout shift
+                    height="600"
                     className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700"
                   />
                 </motion.div>
@@ -123,13 +264,10 @@ export default function PremiumFarmHero() {
                 {/* Floating Card 1: Delivery */}
                 <motion.div
                   initial={{ x: 50, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
+                  animate={loaded ? { x: 0, opacity: 1 } : {}}
                   transition={{ delay: 0.6, duration: 0.5 }}
-                  className="absolute -top-6 -right-4 sm:-right-8 bg-white p-4 rounded-2xl shadow-lg border border-emerald-50 z-20 flex items-center gap-3"
+                  className="absolute -top-6 -right-4 sm:-right-8 bg-white p-4 rounded-2xl shadow-lg border border-emerald-50 z-20 flex items-center gap-3 will-change-transform"
                 >
-                  {/* <div className="bg-orange-100 p-2.5 rounded-full text-orange-600">
-                    <TruckIcon className="w-6 h-6" />
-                  </div> */}
                   <div>
                     <p className="text-xs text-gray-500 font-bold uppercase">
                       Delivery
@@ -143,9 +281,9 @@ export default function PremiumFarmHero() {
                 {/* Floating Card 2: Organic Badge */}
                 <motion.div
                   initial={{ x: -50, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
+                  animate={loaded ? { x: 0, opacity: 1 } : {}}
                   transition={{ delay: 0.8, duration: 0.5 }}
-                  className="absolute -bottom-8 -left-4 sm:-left-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-emerald-50 z-20 flex items-center gap-3 max-w-[200px]"
+                  className="absolute -bottom-8 -left-4 sm:-left-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-emerald-50 z-20 flex items-center gap-3 max-w-[200px] will-change-transform"
                 >
                   <div className="bg-emerald-100 p-2.5 rounded-full text-emerald-600">
                     <LeafIcon className="w-6 h-6" />
@@ -163,7 +301,9 @@ export default function PremiumFarmHero() {
                 {/* Decorative Elements */}
                 <img
                   src="https://cdn-icons-png.flaticon.com/512/1135/1135528.png"
-                  alt="leaf"
+                  alt="leaf decoration"
+                  width="48"
+                  height="48"
                   className="absolute -top-10 left-10 w-12 h-12 opacity-80 rotate-45 animate-bounce"
                   style={{ animationDuration: "3s" }}
                 />
@@ -173,137 +313,5 @@ export default function PremiumFarmHero() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* --- Components --- */
-
-function FarmScene() {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute inset-0 bg-linear-to-b from-sky-200/20 to-transparent" />
-
-      {/* Animated Sun */}
-      <div
-        className="absolute top-10 right-20 w-24 h-24 md:w-32 md:h-32 
-                bg-linear-to-br from-yellow-300 to-amber-400 
-                rounded-full 
-                shadow-lg
-                shadow-yellow-400/50 
-                blur-sm 
-                animate-pulse"
-      />
-      {/* Hills SVG */}
-      <svg
-        className="absolute bottom-0 w-full h-48 lg:h-64 transition-all duration-500"
-        viewBox="0 0 1440 320"
-        preserveAspectRatio="none"
-      >
-        <path
-          fill="#86efac"
-          fillOpacity="0.4"
-          d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,133.3C672,117,768,139,864,165.3C960,192,1056,224,1152,213.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L0,320Z"
-        />
-        <path
-          fill="#4ade80"
-          fillOpacity="0.2"
-          d="M0,224L48,197.3C96,171,192,117,288,112C384,107,480,149,576,165.3C672,181,768,171,864,154.7C960,139,1056,117,1152,122.7C1248,128,1344,160,1392,176L1440,192L1440,320L0,320Z"
-        />
-      </svg>
-
-      {/* Birds */}
-      <motion.div
-        animate={{ x: [0, 100], y: [0, -30, 10] }}
-        transition={{ duration: 8, repeat: Infinity }}
-        className="absolute top-24 left-1/3 opacity-60"
-      >
-        <Bird />
-      </motion.div>
-    </div>
-  );
-}
-
-/* --- Icons --- */
-
-function ArrowRight({ className }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 5l7 7-7 7"
-      />
-    </svg>
-  );
-}
-
-function CheckBadge({ className }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-}
-
-// function TruckIcon({ className }) {
-//   return (
-//     <svg
-//       className={className}
-//       fill="none"
-//       stroke="currentColor"
-//       viewBox="0 0 24 24"
-//     >
-//       <path
-//         strokeLinecap="round"
-//         strokeLinejoin="round"
-//         strokeWidth={2}
-//         d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
-//       />
-//     </svg>
-//   );
-// }
-
-function LeafIcon({ className }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-      />
-    </svg>
-  );
-}
-
-function Bird() {
-  return (
-    <svg width="50" height="40" viewBox="0 0 50 40" fill="none">
-      <path
-        d="M10 20 Q 5 15, 0 20 Q 5 25, 10 20"
-        stroke="#1f2937"
-        strokeWidth="2"
-      />
-      <path
-        d="M40 20 Q 45 15, 50 20 Q 45 25, 40 20"
-        stroke="#1f2937"
-        strokeWidth="2"
-      />
-    </svg>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -34,19 +34,21 @@ const itemVariants = {
 };
 
 export default function ProfilePage() {
-  // --- Logic State (Unchanged) ---
+  // --- Logic State ---
   const [favoriteProducts, setFavoriteProducts] = useState(getFavorites());
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const currentUser = user || {};
+
+  // Optimization: Memoize current user to prevent unstable object references
+  const currentUser = useMemo(() => user || {}, [user]);
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // --- Effects (Unchanged) ---
+  // --- Effects ---
   useEffect(() => {
     const syncFavorites = () => setFavoriteProducts(getFavorites());
     window.addEventListener("storage", syncFavorites);
@@ -57,43 +59,54 @@ export default function ProfilePage() {
     };
   }, []);
 
-  // --- Handlers (Unchanged) ---
-  const handleLogout = async () => {
+  // --- Handlers (Optimized with useCallback) ---
+
+  const handleLogout = useCallback(async () => {
     const response = await logoutUser();
     if (response.success) {
       dispatch(setLogout());
       window.location.reload();
       navigate("/");
     }
-  };
+  }, [dispatch, navigate]);
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword)
-      return toast.error("Passwords do not match!");
-    if (newPassword.length < 6)
-      return toast.error("Password must be at least 6 characters");
+  const handleChangePassword = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (newPassword !== confirmPassword)
+        return toast.error("Passwords do not match!");
+      if (newPassword.length < 6)
+        return toast.error("Password must be at least 6 characters");
 
-    setLoading(true);
-    try {
-      // await changePasswordAPI({ newPassword });
-      toast.success("Password changed successfully!");
-      setShowPasswordModal(false);
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      toast.error("Failed to change password");
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      try {
+        // await changePasswordAPI({ newPassword });
+        toast.success("Password changed successfully!");
+        setShowPasswordModal(false);
+        setNewPassword("");
+        setConfirmPassword("");
+      } catch (err) {
+        toast.error("Failed to change password");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [newPassword, confirmPassword]
+  );
 
-  const removeFromFavorites = (productId) => {
+  const removeFromFavorites = useCallback((productId) => {
     removeFavorite(productId);
     setFavoriteProducts(getFavorites());
     toast.success("Removed from favorites");
     window.dispatchEvent(new Event("favoritesUpdated"));
-  };
+  }, []);
+
+  const openPasswordModal = useCallback(() => setShowPasswordModal(true), []);
+  const closePasswordModal = useCallback(() => setShowPasswordModal(false), []);
+  const navigateToOrders = useCallback(
+    () => navigate("/my-orders"),
+    [navigate]
+  );
 
   // --- Render ---
   return (
@@ -125,9 +138,6 @@ export default function ProfilePage() {
                 variants={itemVariants}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative"
               >
-                {/* <div className="h-24 bg-linear-to-r from-green-600 to-teal-600 opacity-90"></div> */}
-                {/* OLD: <div className="h-24 bg-linear-to-r from-green-600 to-teal-600 opacity-90"></div> */}
-
                 {/* NEW: Exact same height (h-24), but with rich farm SVG background */}
                 <div className="h-24 relative overflow-hidden bg-green-50">
                   <svg
@@ -212,8 +222,6 @@ export default function ProfilePage() {
                       opacity="0.7"
                     />
                   </svg>
-
-                 
                 </div>
                 <div className="px-5 pb-5">
                   <div className="relative -mt-12 mb-3">
@@ -244,12 +252,12 @@ export default function ProfilePage() {
                   <MenuItem
                     icon={<Package className="w-5 h-5 text-blue-500" />}
                     label="My Orders"
-                    onClick={() => navigate("/my-orders")}
+                    onClick={navigateToOrders}
                   />
                   <MenuItem
                     icon={<KeyRound className="w-5 h-5 text-orange-500" />}
                     label="Change Password"
-                    onClick={() => setShowPasswordModal(true)}
+                    onClick={openPasswordModal}
                   />
                   <MenuItem
                     icon={<LogOut className="w-5 h-5 text-red-500" />}
@@ -260,7 +268,7 @@ export default function ProfilePage() {
                 </div>
               </motion.nav>
 
-              {/* Compact Details for Desktop (Hidden on Mobile to save space, shown via modal/accordian if needed, but keeping visible here for simplicity) */}
+              {/* Compact Details for Desktop */}
               <motion.div
                 variants={itemVariants}
                 className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-sm"
@@ -314,11 +322,10 @@ export default function ProfilePage() {
                       <FavoriteItem
                         key={product._id}
                         product={product}
+                        // Passing an inline function here is okay for the navigate part if we don't want to over-optimize,
+                        // but best is to keep FavoriteItem memoized.
                         onClick={() => navigate(`/product/${product._id}`)}
-                        onRemove={(e) => {
-                          e.stopPropagation();
-                          removeFromFavorites(product._id);
-                        }}
+                        onRemove={removeFromFavorites}
                       />
                     ))}
                   </AnimatePresence>
@@ -338,7 +345,7 @@ export default function ProfilePage() {
             setNewPassword={setNewPassword}
             setConfirmPassword={setConfirmPassword}
             onSubmit={handleChangePassword}
-            onClose={() => setShowPasswordModal(false)}
+            onClose={closePasswordModal}
             loading={loading}
           />
         )}
@@ -348,10 +355,10 @@ export default function ProfilePage() {
 }
 
 // ------------------------------------------------------------------
-// SUB-COMPONENTS (Built for reusability & clean JSX)
+// SUB-COMPONENTS (OPTIMIZED WITH MEMO)
 // ------------------------------------------------------------------
 
-const MenuItem = ({ icon, label, onClick, isDestructive = false }) => (
+const MenuItem = memo(({ icon, label, onClick, isDestructive = false }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group active:bg-gray-100 ${
@@ -372,9 +379,9 @@ const MenuItem = ({ icon, label, onClick, isDestructive = false }) => (
     </div>
     <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-400" />
   </button>
-);
+));
 
-const DetailRow = ({ icon, label, value }) => (
+const DetailRow = memo(({ icon, label, value }) => (
   <div className="flex items-start gap-3 text-gray-600">
     <div className="mt-0.5 text-gray-400">{icon}</div>
     <div>
@@ -382,9 +389,9 @@ const DetailRow = ({ icon, label, value }) => (
       <p className="font-medium text-gray-900">{value}</p>
     </div>
   </div>
-);
+));
 
-const FavoriteItem = ({ product, onClick, onRemove }) => (
+const FavoriteItem = memo(({ product, onClick, onRemove }) => (
   <motion.div
     layout
     initial={{ opacity: 0, scale: 0.95 }}
@@ -417,16 +424,19 @@ const FavoriteItem = ({ product, onClick, onRemove }) => (
     </div>
 
     <button
-      onClick={onRemove}
+      onClick={(e) => {
+        e.stopPropagation();
+        onRemove(product._id);
+      }}
       className="absolute top-2 right-2 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
       title="Remove"
     >
       <Heart className="w-4 h-4 fill-current" />
     </button>
   </motion.div>
-);
+));
 
-const EmptyState = () => (
+const EmptyState = memo(() => (
   <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 text-center">
     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
       <Package className="w-8 h-8 text-gray-300" />
@@ -436,101 +446,103 @@ const EmptyState = () => (
       Items you save will appear here for quick access.
     </p>
   </div>
-);
+));
 
-const PasswordModal = ({
-  newPassword,
-  confirmPassword,
-  setNewPassword,
-  setConfirmPassword,
-  onSubmit,
-  onClose,
-  loading,
-}) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs"
-    onClick={onClose}
-  >
+const PasswordModal = memo(
+  ({
+    newPassword,
+    confirmPassword,
+    setNewPassword,
+    setConfirmPassword,
+    onSubmit,
+    onClose,
+    loading,
+  }) => (
     <motion.div
-      initial={{ scale: 0.95, opacity: 0, y: 20 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      exit={{ scale: 0.95, opacity: 0, y: 20 }}
-      onClick={(e) => e.stopPropagation()}
-      className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs"
+      onClick={onClose}
     >
-      <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-        <div>
-          <h3 className="font-bold text-gray-900 text-lg">Security</h3>
-          <p className="text-xs text-gray-500">Update your password</p>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-2 bg-white rounded-full hover:bg-gray-100 border border-gray-100 transition"
-        >
-          <X className="w-4 h-4 text-gray-500" />
-        </button>
-      </div>
-
-      <form onSubmit={onSubmit} className="p-6 space-y-4">
-        <div className="space-y-4">
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <label className="text-xs font-semibold text-gray-700 ml-1 mb-1.5 block">
-              New Password
-            </label>
-            <div className="relative">
-              <KeyRound className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all bg-gray-50 focus:bg-white"
-                placeholder="Min 6 characters"
-                required
-              />
-            </div>
+            <h3 className="font-bold text-gray-900 text-lg">Security</h3>
+            <p className="text-xs text-gray-500">Update your password</p>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-700 ml-1 mb-1.5 block">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <ShieldCheck className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all bg-gray-50 focus:bg-white"
-                placeholder="Re-type password"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-2 flex gap-3">
           <button
-            type="button"
             onClick={onClose}
-            className="flex-1 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+            className="p-2 bg-white rounded-full hover:bg-gray-100 border border-gray-100 transition"
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 py-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 active:scale-[0.98] rounded-xl shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>Save Changes</>
-            )}
+            <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-      </form>
+
+        <form onSubmit={onSubmit} className="p-6 space-y-4">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-700 ml-1 mb-1.5 block">
+                New Password
+              </label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                  placeholder="Min 6 characters"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-700 ml-1 mb-1.5 block">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <ShieldCheck className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                  placeholder="Re-type password"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 active:scale-[0.98] rounded-xl shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>Save Changes</>
+              )}
+            </button>
+          </div>
+        </form>
+      </motion.div>
     </motion.div>
-  </motion.div>
+  )
 );

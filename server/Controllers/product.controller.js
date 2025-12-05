@@ -119,24 +119,78 @@ export const get_products_farmer = async (req, res) => {
   }
 };
 
-export const delete_product = async (req, res) => {
+export const deleteProduct = async (req, res) => {
   try {
+    const { id } = req.params; 
+    const farmerId = req.user._id; 
+    // Find the product
+    const product = await Product.findById(id);
+
+    // Check if product exists
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Check if the user is the farmer/owner
+    if (product.farmer.toString() !== farmerId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this product",
+      });
+    }
+
+    // Delete the product
+    await Product.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
   } catch (error) {
-    return res.json({ message: "Internal server error", success: false });
+    console.error("Error deleting product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting product",
+    });
   }
 };
 
 export const get_single_product = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("farmer");
+    const { id } = req.params;
+
+    // 1. Fetch the main product
+    // Optimization: Populate only necessary farmer public fields
+    const product = await Product.findById(id).populate(
+      "farmer",
+      "fullName profilePicture location role"
+    );
 
     if (!product) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
-    return res.status(200).json({ success: true, product });
+
+    // 2. Fetch Related Products (Suggestion System)
+    // Logic: Same category, excluding the current product ID
+    const relatedProducts = await Product.find({
+      category: product.category,
+      _id: { $ne: product._id }, // Exclude current product
+    })
+      .select("name pricePerUnit unit photos category") // Optimization: Select only needed fields
+      .limit(4); // Optimization: Limit to 4 items to reduce load
+
+    return res.status(200).json({
+      success: true,
+      product,
+      relatedProducts,
+    });
   } catch (error) {
+    console.error("Error fetching product:", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -146,7 +200,6 @@ export const get_single_product = async (req, res) => {
 
 export const getProductsByCategory = async (req, res) => {
 
-    console.log("hello  ...")
   try {
     const products = await Product.find({
       quantityAvailable: { $gt: 0 },

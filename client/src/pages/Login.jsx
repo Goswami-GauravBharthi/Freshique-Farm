@@ -14,8 +14,6 @@ export const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  //    const queryClient = useQueryClient();
-
   const { mutate, isPending } = useMutation({
     mutationFn: LoginUser,
     onSuccess: async (data) => {
