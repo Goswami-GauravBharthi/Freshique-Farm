@@ -155,11 +155,11 @@ export default function PremiumFarmHero() {
   );
 
   return (
-    <section className="relative min-h-[90vh] lg:min-h-screen flex items-center overflow-hidden bg-linear-to-b from-sky-50 via-emerald-50/50 to-lime-50">
+    <section className="relative min-h-[90vh] lg:min-h-screen flex items-center overflow-hidden bg-linear-to-b from-sky-50 via-lime-100 to-emerald-50">
       <FarmScene />
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-10 pb-16 sm:pt-40 lg:pt-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-10 pb-16 sm:pt-40 lg:pt-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: Text & CTA */}
           <motion.div
@@ -168,12 +168,7 @@ export default function PremiumFarmHero() {
             animate={loaded ? "visible" : "hidden"}
             className="text-center lg:text-left space-y-8 order-2 lg:order-1"
           >
-            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-emerald-100 shadow-sm mb-4">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-emerald-800 text-xs font-bold tracking-wide uppercase">
-                Now Harvesting Season
-              </span>
-            </div>
+           
 
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-[1.1] tracking-tight text-slate-900">
               <span className="block text-emerald-800 drop-shadow-sm">

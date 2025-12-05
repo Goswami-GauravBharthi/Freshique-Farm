@@ -67,12 +67,12 @@ export default function Navbar() {
 
             {/* About & Contact - Same */}
             <div className="flex gap-6">
-              <Link
+              {/* <Link
                 to="/about"
                 className="text-gray-600 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"
               >
                 About
-              </Link>
+              </Link> */}
               <Link
                 to="/community"
                 className="text-gray-600 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"

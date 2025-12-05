@@ -186,8 +186,9 @@ const AddProduct = () => {
                 Select a unit
               </option>
               <option value="kg">Kilograms (kg)</option>
-              <option value="gram">Gram (200)</option>
+              <option value="gram (250)">Gram (250g)</option>
               <option value="liters">Liters</option>
+              <option value="liters (500ml)">Liters (500ml)</option>
               <option value="pieces">Pieces</option>
             </select>
           </div>

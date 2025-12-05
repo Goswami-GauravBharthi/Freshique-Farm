@@ -366,7 +366,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, isUpdating, formatFu
                     </div>
                   </div>
                   <p className="text-2xl font-bold text-green-600">
-                    ₹{item.price * item.quantity}
+                    ₹{(item.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
               ))}
@@ -378,7 +378,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, isUpdating, formatFu
             <p className="text-sm opacity-90">Total Earnings from this Order</p>
             <p className="text-4xl font-bold mt-2 flex items-center justify-center gap-3">
               <IndianRupee className="w-10 h-10" />
-              ₹{order.totalAmount + order.deliveryCharge}
+              ₹{(order.totalAmount + order.deliveryCharge).toFixed(2)}
             </p>
             {order.paymentMethod === "cod" && (
               <p className="mt-3 text-lg opacity-90">Cash on Delivery</p>
