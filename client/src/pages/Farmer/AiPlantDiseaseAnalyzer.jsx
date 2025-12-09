@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Loader,
@@ -10,11 +11,50 @@ import {
   Shield,
   UploadCloud,
   Globe,
+  XCircle, // Used for the clear button for better visibility
+  TrendingUp, // For confidence/severity indicator
+  Heart, // For healthy status
 } from "lucide-react";
 import { analyzePlantImage } from "../../apis/aiApi/";
 
+// --- CONSTANTS AND HELPERS (Keep outside the component for clean UI logic) ---
 const STORAGE_KEY = "aiPlantAnalyzerState";
+const MAX_FILE_SIZE_MB = 5;
 
+// Utility to determine color based on confidence/severity
+const getIndicatorStyle = (value, type = "confidence") => {
+  let colorClass;
+  let label;
+
+  if (type === "confidence") {
+    if (value >= 80) {
+      colorClass = "bg-green-500 text-white";
+      label = "High Confidence";
+    } else if (value >= 50) {
+      colorClass = "bg-yellow-500 text-white";
+      label = "Medium Confidence";
+    } else {
+      colorClass = "bg-red-500 text-white";
+      label = "Low Confidence";
+    }
+  } else if (type === "severity") {
+    const severityMap = {
+      low: { class: "bg-green-500 text-white", label: "Low" },
+      medium: { class: "bg-yellow-500 text-white", label: "Medium" },
+      high: { class: "bg-red-500 text-white", label: "High" },
+    };
+    const style = severityMap[value?.toLowerCase()] || {
+      class: "bg-gray-400 text-white",
+      label: "N/A",
+    };
+    colorClass = style.class;
+    label = style.label;
+  }
+
+  return { colorClass, label };
+};
+
+// --- MAIN COMPONENT ---
 const AiPlantDiseaseAnalyzer = () => {
   // States
   const [selectedImage, setSelectedImage] = useState(null);
@@ -28,7 +68,8 @@ const AiPlantDiseaseAnalyzer = () => {
   const [activeTab, setActiveTab] = useState("summary");
   const [language, setLanguage] = useState("en");
 
-  // Load state from storage on mount
+  // Logic Hooks (keeping existing business logic as requested)
+  // [Load state from storage on mount] - useEffect 1
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -49,7 +90,7 @@ const AiPlantDiseaseAnalyzer = () => {
     }
   }, []);
 
-  // Save state to storage
+  // [Save state to storage] - useEffect 2
   useEffect(() => {
     try {
       const stateToSave = {
@@ -65,7 +106,7 @@ const AiPlantDiseaseAnalyzer = () => {
     }
   }, [imageBase64, analysisResult, activeTab, language, translatedResult]);
 
-  // Cleanup
+  // [Cleanup] - useEffect 3
   useEffect(() => {
     return () => {
       if (selectedImage && selectedImage.startsWith("blob:")) {
@@ -74,25 +115,22 @@ const AiPlantDiseaseAnalyzer = () => {
     };
   }, [selectedImage]);
 
-
-  // Helper to fetch translation for a single string
+  // Helper to fetch translation (Keeping existing logic for translation)
   const fetchTranslation = async (text) => {
     if (!text || typeof text !== "string") return text;
     try {
-      // Using the free 'gtx' endpoint used by browser extensions
       const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=gu&dt=t&q=${encodeURIComponent(
         text
       )}`;
       const res = await fetch(url);
       const data = await res.json();
-      // data[0][0][0] contains the translated text
       if (data && data[0] && data[0][0] && data[0][0][0]) {
-        return data[0].map((item) => item[0]).join(""); // Join parts if translation is split
+        return data[0].map((item) => item[0]).join("");
       }
       return text;
     } catch (err) {
       console.error("Translation API fetch error:", err);
-      return text; // Fallback to English
+      return text;
     }
   };
 
@@ -108,13 +146,11 @@ const AiPlantDiseaseAnalyzer = () => {
       const tDisease = await fetchTranslation(englishResult.disease);
       const tPlantType = await fetchTranslation(englishResult.plantType);
 
-      // 2. Helper to translate arrays (joins with delimiter to save requests)
+      // 2. Helper to translate arrays
       const translateArray = async (arr) => {
         if (!arr || arr.length === 0) return [];
-        // Join with a unique delimiter that won't likely appear in text
         const joined = arr.join(" ||| ");
         const translated = await fetchTranslation(joined);
-        // Split back by the translated delimiter (Google might translate the delimiter spaces)
         return translated.split("|||").map((s) => s.trim());
       };
 
@@ -138,7 +174,6 @@ const AiPlantDiseaseAnalyzer = () => {
         causes: tCauses,
         suggestions: tSuggestions,
         prevention: tPrevention,
-        // Keep these original
         healthy: englishResult.healthy,
         confidence: englishResult.confidence,
         severity: englishResult.severity,
@@ -161,8 +196,8 @@ const AiPlantDiseaseAnalyzer = () => {
   const handleImageChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size exceeds 5MB limit.");
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        setError(`Image size exceeds ${MAX_FILE_SIZE_MB}MB limit.`);
         return;
       }
 
@@ -234,87 +269,103 @@ const AiPlantDiseaseAnalyzer = () => {
     {
       key: "gu",
       label: "ગુજરાતી",
-      icon: <Globe className="w-4 h-4 rotate-12" />,
+      icon: <Globe className="w-4 h-4 text-green-700" />,
     },
   ];
 
+  const { colorClass: confidenceColorClass, label: confidenceLabel } =
+    isResultsReady
+      ? getIndicatorStyle(currentResult.confidence, "confidence")
+      : {};
+
+  const { colorClass: severityColorClass, label: severityLabel } =
+    isResultsReady ? getIndicatorStyle(currentResult.severity, "severity") : {};
+
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
-      <main className="flex-1 p-4 sm:p-6 overflow-auto bg-emerald-50">
-        <div className="max-w-6xl mx-auto">
-          {/* Language Toggle */}
+    // Mobile-first: Full height, constrained width for readability
+    <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
+      {/* Header for Branding/Context */}
+      <header className="bg-green-700 shadow-lg p-4 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white flex items-center">
+            <Leaf className="w-6 h-6 mr-2 text-green-300" />
+            AI Plant Doctor
+          </h1>
+          {/* Language Toggle in Header when results are ready */}
           {isResultsReady && (
-            <div className="mb-4 sm:mb-6 bg-white rounded-xl shadow-sm p-3 flex justify-center border border-gray-200">
-              <div className="flex space-x-2">
-                {langOptions.map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => {
-                      if (
-                        opt.key === "gu" &&
-                        language === "en" &&
-                        analysisResult
-                      ) {
-                        translateToGujarati(analysisResult);
-                      } else if (opt.key === "en") {
-                        setLanguage("en");
-                      }
-                    }}
-                    disabled={
-                      isTranslating || (opt.key === "gu" && !analysisResult)
+            <div className="flex space-x-1 p-1 bg-green-600 rounded-lg shadow-inner">
+              {langOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    if (
+                      opt.key === "gu" &&
+                      language === "en" &&
+                      analysisResult
+                    ) {
+                      translateToGujarati(analysisResult);
+                    } else if (opt.key === "en") {
+                      setLanguage("en");
                     }
-                    className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      language === opt.key
-                        ? "bg-green-600 text-white shadow-md"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {opt.icon}
-                    <span className="ml-1">{opt.label}</span>
-                    {isTranslating && opt.key === "gu" && (
-                      <Loader className="ml-2 w-4 h-4 animate-spin" />
-                    )}
-                  </button>
-                ))}
-              </div>
+                  }}
+                  disabled={
+                    isTranslating || (opt.key === "gu" && !analysisResult)
+                  }
+                  className={`flex items-center px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                    language === opt.key
+                      ? "bg-white text-green-700 shadow-md"
+                      : "text-green-200 hover:text-white"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {opt.label}
+                  {isTranslating && opt.key === "gu" && (
+                    <Loader className="ml-1 w-3 h-3 animate-spin" />
+                  )}
+                </button>
+              ))}
             </div>
           )}
+        </div>
+      </header>
 
-          <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
-            Upload a clear image of your plant&apos;s leaf or crop for instant
-            AI-powered analysis and expert suggestions.
+      <main className="flex-1 p-4 sm:p-6 overflow-auto">
+        <div className="max-w-6xl mx-auto">
+          {/* Main Description */}
+          <p className="text-gray-600 mb-6 text-base sm:text-lg">
+            🌾 <b>AI Plant Doctor : </b> Instant Crop Care: Upload a clear image of your plant's leaf
+            or crop for expert AI analysis and practical advice in seconds.
           </p>
 
-          <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-lg space-y-6">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-2xl space-y-8 border border-gray-100">
             {/* Upload Section */}
             <section className="w-full">
+              <h2 className="text-lg font-bold text-gray-700 mb-3 flex items-center">
+                <UploadCloud className="w-5 h-5 mr-2 text-green-600" />
+                {selectedImage ? "Review Image" : "Upload Plant Photo"}
+              </h2>
+
               <div
-                className={`relative w-full h-48 sm:h-64 border-2 rounded-xl overflow-hidden transition-all duration-300 ${
+                className={`relative w-full h-56 sm:h-72 border-2 rounded-xl overflow-hidden transition-all duration-300 group ${
                   selectedImage
-                    ? "border-green-400 bg-white shadow-md"
-                    : "border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer hover:shadow-sm"
+                    ? "border-green-500 bg-white"
+                    : "border-dashed border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer"
                 }`}
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
-                role={selectedImage ? undefined : "button"}
               >
-                {isLoading && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
-                    <Loader className="w-8 h-8 animate-spin text-green-600" />
-                  </div>
-                )}
-
+                {/* Image & Placeholder */}
                 {!selectedImage ? (
                   <label
                     htmlFor="image-upload"
                     className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center cursor-pointer transition-colors duration-200"
                   >
-                    <UploadCloud className="w-8 h-8 sm:w-12 sm:h-12 text-green-600 mb-2 sm:mb-3 shrink-0" />
-                    <p className="mb-1 text-xs sm:text-sm text-gray-500 font-semibold">
-                      Click to upload or drag & drop
+                    <UploadCloud className="w-10 h-10 sm:w-14 sm:h-14 text-green-600 mb-3" />
+                    <p className="mb-1 text-sm sm:text-base text-gray-700 font-semibold">
+                      Tap or Drag Photo Here
                     </p>
                     <p className="text-xs text-gray-500">
-                      PNG, JPG, GIF (MAX. 5MB)
+                      Best results from clear, close-up images. (Max.{" "}
+                      {MAX_FILE_SIZE_MB}MB)
                     </p>
                     <input
                       id="image-upload"
@@ -332,101 +383,139 @@ const AiPlantDiseaseAnalyzer = () => {
                       alt="Selected plant for analysis"
                       className="w-full h-full object-contain p-2"
                     />
-                    <button
-                      onClick={clearAnalysis}
-                      className="absolute top-3 right-3 p-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
-                    >
-                      <AlertTriangle className="w-4 h-4" />
-                    </button>
                   </>
+                )}
+
+                {/* Loading Overlay */}
+                {isLoading && (
+                  <div className="absolute inset-0 bg-white/90 flex items-center justify-center z-10">
+                    <div className="text-center">
+                      <Loader className="w-8 h-8 sm:w-10 sm:h-10 animate-spin text-green-600 mx-auto mb-2" />
+                      <p className="text-green-700 font-medium">Analyzing...</p>
+                    </div>
+                  </div>
                 )}
               </div>
 
+              {/* Action Buttons */}
               {selectedImage && (
                 <div className="mt-4 flex flex-col sm:flex-row justify-center gap-3">
                   <button
                     onClick={analyzeImage}
-                    disabled={isLoading}
-                    className="flex-1 max-w-md bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg text-sm sm:text-base"
+                    disabled={isLoading || isResultsReady}
+                    className="flex-1 max-w-sm mx-auto bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg text-base"
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader className="animate-spin mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-                        Analyze Plant
-                      </>
-                    )}
+                    <Zap className="mr-2 w-5 h-5" />
+                    {isResultsReady ? "Analysis Complete" : "Start AI Analysis"}
                   </button>
-                  {!isLoading && (
-                    <button
-                      onClick={clearAnalysis}
-                      className="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md text-sm sm:text-base"
-                    >
-                      Clear
-                    </button>
-                  )}
+                  <button
+                    onClick={clearAnalysis}
+                    className="px-6 py-3 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md text-sm sm:text-base flex items-center justify-center"
+                  >
+                    <XCircle className="w-4 h-4 mr-1" />
+                    Clear Image
+                  </button>
                 </div>
               )}
 
+              {/* Error Message */}
               {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center text-red-700 text-sm animate-fade-in">
-                  <AlertTriangle className="mr-2 w-4 h-4 shrink-0" />
-                  {error}
+                <div className="mt-4 p-4 bg-red-50 border border-red-300 rounded-xl flex items-start text-red-700 text-sm animate-fade-in">
+                  <AlertTriangle className="mr-2 w-5 h-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Error:</p>
+                    <p>{error}</p>
+                  </div>
                 </div>
               )}
             </section>
 
-            {/* Results Section */}
-            <section className="w-full space-y-4">
+            {/* Analysis Results Section */}
+            <section className="w-full space-y-6 pt-4 border-t border-gray-100">
+              <h2 className="text-lg font-bold text-gray-700 flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+                Analysis Results
+              </h2>
+
+              {/* Empty State */}
               {!isResultsReady ? (
-                <div className="h-64 sm:h-96 flex items-center justify-center text-gray-400 p-4 rounded-xl bg-gray-50/50">
-                  <div className="text-center animate-pulse">
-                    <Leaf className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50 text-green-300" />
-                    <p className="text-base sm:text-lg font-medium">
-                      Upload an image to begin analysis
-                    </p>
-                    <p className="text-sm mt-2 text-gray-500">
-                      Get expert insights on plant health in seconds
-                    </p>
-                  </div>
+                <div className="p-10 flex flex-col items-center justify-center text-gray-400 rounded-xl bg-gray-50 border border-dashed border-gray-200">
+                  <Leaf className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-green-300/70" />
+                  <p className="text-base sm:text-lg font-medium text-gray-600">
+                    Your results will appear here.
+                  </p>
+                  <p className="text-sm mt-1 text-gray-500">
+                    Upload an image and press 'Start AI Analysis'.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-4 sm:space-y-6 animate-fade-in">
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <h2 className="text-lg sm:text-2xl font-bold text-gray-800 flex items-center flex-wrap justify-center">
-                      Analysis Complete
+                <div className="space-y-6 animate-fade-in">
+                  {/* High-Level Summary Card */}
+                  <div
+                    className={`p-5 rounded-xl shadow-lg border-l-4 ${
+                      currentResult.healthy
+                        ? "border-green-600 bg-green-50"
+                        : "border-red-600 bg-red-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-extrabold text-gray-800 flex items-center">
+                        {currentResult.healthy ? (
+                          <Heart className="mr-2 w-6 h-6 text-green-600" />
+                        ) : (
+                          <AlertTriangle className="mr-2 w-6 h-6 text-red-600" />
+                        )}
+                        {currentResult.disease ||
+                          (language === "en"
+                            ? "Healthy Plant"
+                            : "તંદુરસ્ત છોડ")}
+                      </h3>
                       <span
-                        className={`ml-2 px-3 py-1 rounded-full text-xs sm:text-sm font-medium shadow-sm ${
-                          currentResult.healthy
-                            ? "bg-green-100 text-green-800 border border-green-200"
-                            : "bg-red-100 text-red-800 border border-red-200"
-                        }`}
+                        className={`px-3 py-1 text-xs font-semibold rounded-full ${confidenceColorClass} shadow-sm hidden sm:inline-flex`}
                       >
-                        {currentResult.disease} ({currentResult.confidence}%
-                        Confidence)
+                        {confidenceLabel}
                       </span>
-                    </h2>
-                    <div className="w-full max-w-md bg-gray-200 rounded-full h-2">
+                    </div>
+
+                    <p className="text-sm text-gray-600 mb-3">
+                      <span className="font-semibold">
+                        {language === "en" ? "Plant Type:" : "છોડનો પ્રકાર:"}
+                      </span>{" "}
+                      {currentResult.plantType ||
+                        (language === "en" ? "Unspecified" : "અનિશ્ચિત")}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-4 text-xs mt-3">
+                      <span className="font-medium text-gray-700 flex items-center">
+                        {language === "en" ? "Confidence:" : "વિશ્વાસ:"}
+                        <span
+                          className={`ml-2 px-2 py-0.5 rounded-full text-white ${confidenceColorClass}`}
+                        >
+                          {currentResult.confidence}%
+                        </span>
+                      </span>
+                      <span className="font-medium text-gray-700 flex items-center">
+                        {language === "en" ? "Severity:" : "ગંભીરતા:"}
+                        <span
+                          className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${severityColorClass}`}
+                        >
+                          {severityLabel}
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Progress Bar with Confidence */}
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
                       <div
-                        className={`h-2 rounded-full transition-all duration-500 ease-out ${
-                          currentResult.confidence > 80
-                            ? "bg-green-600"
-                            : currentResult.confidence > 50
-                            ? "bg-yellow-600"
-                            : "bg-red-600"
-                        }`}
+                        className={`h-2 rounded-full transition-all duration-700 ease-out ${confidenceColorClass}`}
                         style={{ width: `${currentResult.confidence}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Tabs */}
-                  <div className="border-b border-gray-200">
-                    <nav className="flex overflow-x-auto space-x-1 pb-2 -mb-px">
+                  {/* Tabs for Detailed Information */}
+                  <div className="bg-white rounded-xl shadow-inner p-1 border border-gray-100">
+                    <nav className="flex overflow-x-auto space-x-1">
                       {[
                         {
                           key: "summary",
@@ -449,81 +538,84 @@ const AiPlantDiseaseAnalyzer = () => {
                               ? "Suggestions & Prevention"
                               : "સૂચનો અને નિવારણ",
                         },
-                      ].map((tab) => (
-                        <button
-                          key={tab.key}
-                          onClick={() => setActiveTab(tab.key)}
-                          className={`shrink-0 py-3 px-4 border-b-2 font-medium text-sm flex items-center whitespace-nowrap transition-colors duration-200 ${
-                            activeTab === tab.key
-                              ? "border-green-500 text-green-600 shadow-sm"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                          }`}
-                        >
-                          <tab.icon className="w-4 h-4 mr-2 shrink-0" />
-                          {tab.label}
-                        </button>
-                      ))}
+                      ].map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`shrink-0 py-2 px-4 rounded-lg font-semibold text-sm flex items-center whitespace-nowrap transition-all duration-200 ${
+                              activeTab === tab.key
+                                ? "bg-green-600 text-white shadow-md"
+                                : "text-gray-600 hover:bg-gray-100"
+                            }`}
+                          >
+                            <Icon className="w-4 h-4 mr-2 shrink-0" />
+                            {tab.label}
+                          </button>
+                        );
+                      })}
                     </nav>
                   </div>
 
-                  {/* Tab Content */}
-                  <div className="pt-2 sm:pt-4 space-y-4">
+                  {/* Tab Content Area */}
+                  <div className="pt-2">
                     {activeTab === "summary" && (
-                      <div className="p-6 bg-linear-to-br from-gray-50 to-white rounded-xl shadow-inner border border-gray-100 text-sm">
-                        <h3 className="font-semibold text-base sm:text-lg mb-4 text-gray-800 flex items-center justify-center">
-                          <Info className="mr-2 w-5 h-5 text-blue-600" />
-                          Plant Type:{" "}
-                          <span className="ml-1 font-normal">
-                            {currentResult.plantType ||
-                              (language === "en" ? "Unspecified" : "અનિશ્ચિત")}
-                          </span>
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed text-sm prose max-w-none">
+                      <div className="p-5 bg-white rounded-xl shadow-lg border border-gray-100 text-sm">
+                        <h4 className="font-bold text-base mb-2 text-gray-800 flex items-center">
+                          <Info className="mr-2 w-4 h-4 text-green-600" />
+                          {language === "en" ? "Overview" : "ઝાંખી"}
+                        </h4>
+                        <p className="text-gray-700 leading-relaxed text-sm">
                           {currentResult.summary}
-                        </p>
-                        <p className="mt-4 text-xs sm:text-sm text-gray-500 flex items-center justify-center">
-                          Severity:
-                          <span
-                            className={`ml-2 font-medium px-2 py-1 rounded-full text-xs ${
-                              currentResult.severity === "low"
-                                ? "text-green-600 bg-green-100"
-                                : currentResult.severity === "medium"
-                                ? "text-yellow-600 bg-yellow-100"
-                                : "text-red-600 bg-red-100"
-                            }`}
-                          >
-                            {currentResult.severity?.toUpperCase() || "N/A"}
-                          </span>
                         </p>
                       </div>
                     )}
 
                     {activeTab === "details" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-5 bg-blue-50/50 rounded-xl border border-blue-100 text-sm">
-                          <h3 className="font-semibold text-base sm:text-lg mb-3 text-blue-800 flex items-center">
+                        {/* Symptoms */}
+                        <div className="p-5 bg-blue-50 rounded-xl border border-blue-200 text-sm shadow-md">
+                          <h4 className="font-semibold text-base mb-3 text-blue-800 flex items-center">
                             <AlertCircle className="mr-2 w-5 h-5" />
                             {language === "en" ? "Symptoms" : "લક્ષણો"}
-                          </h3>
-                          <ul className="space-y-2 text-gray-700 list-disc list-inside">
-                            {currentResult.symptoms?.map((symptom, i) => (
-                              <li key={i} className="text-sm pl-2">
-                                {symptom}
+                          </h4>
+                          <ul className="space-y-2 text-gray-700 list-disc list-inside ml-4">
+                            {currentResult.symptoms?.length > 0 ? (
+                              currentResult.symptoms.map((symptom, i) => (
+                                <li key={i} className="text-sm">
+                                  {symptom}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-500">
+                                {language === "en"
+                                  ? "No specific symptoms listed."
+                                  : "કોઈ ચોક્કસ લક્ષણો સૂચિબદ્ધ નથી."}
                               </li>
-                            ))}
+                            )}
                           </ul>
                         </div>
-                        <div className="p-5 bg-yellow-50/50 rounded-xl border border-yellow-100 text-sm">
-                          <h3 className="font-semibold text-base sm:text-lg mb-3 text-yellow-800 flex items-center">
-                            <AlertCircle className="mr-2 w-5 h-5" />
+                        {/* Causes */}
+                        <div className="p-5 bg-yellow-50 rounded-xl border border-yellow-200 text-sm shadow-md">
+                          <h4 className="font-semibold text-base mb-3 text-yellow-800 flex items-center">
+                            <AlertTriangle className="mr-2 w-5 h-5" />
                             {language === "en" ? "Causes" : "કારણો"}
-                          </h3>
-                          <ul className="space-y-2 text-gray-700 list-disc list-inside">
-                            {currentResult.causes?.map((cause, i) => (
-                              <li key={i} className="text-sm pl-2">
-                                {cause}
+                          </h4>
+                          <ul className="space-y-2 text-gray-700 list-disc list-inside ml-4">
+                            {currentResult.causes?.length > 0 ? (
+                              currentResult.causes.map((cause, i) => (
+                                <li key={i} className="text-sm">
+                                  {cause}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-500">
+                                {language === "en"
+                                  ? "No specific causes listed."
+                                  : "કોઈ ચોક્કસ કારણો સૂચિબદ્ધ નથી."}
                               </li>
-                            ))}
+                            )}
                           </ul>
                         </div>
                       </div>
@@ -531,34 +623,52 @@ const AiPlantDiseaseAnalyzer = () => {
 
                     {activeTab === "advice" && (
                       <div className="space-y-4">
-                        <div className="p-5 bg-green-50/50 rounded-xl border border-green-100 text-sm">
-                          <h3 className="font-semibold text-base sm:text-lg mb-3 text-green-800 flex items-center">
+                        {/* Suggestions */}
+                        <div className="p-5 bg-green-50 rounded-xl border border-green-200 text-sm shadow-md">
+                          <h4 className="font-semibold text-base mb-3 text-green-800 flex items-center">
                             <CheckCircle className="mr-2 w-5 h-5" />
                             {language === "en"
                               ? "Treatment Suggestions"
                               : "ઉપચાર સૂચનો"}
-                          </h3>
-                          <ol className="space-y-2 text-gray-700 list-decimal list-inside">
-                            {currentResult.suggestions?.map((suggestion, i) => (
-                              <li key={i} className="pl-3 text-sm">
-                                {suggestion}
+                          </h4>
+                          <ol className="space-y-2 text-gray-700 list-decimal list-inside ml-4">
+                            {currentResult.suggestions?.length > 0 ? (
+                              currentResult.suggestions.map((suggestion, i) => (
+                                <li key={i} className="text-sm font-medium">
+                                  {suggestion}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-500">
+                                {language === "en"
+                                  ? "No specific suggestions provided."
+                                  : "કોઈ ચોક્કસ સૂચનો પૂરા પાડવામાં આવ્યાં નથી."}
                               </li>
-                            ))}
+                            )}
                           </ol>
                         </div>
-                        <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm">
-                          <h3 className="font-semibold text-base sm:text-lg mb-3 text-indigo-800 flex items-center">
+                        {/* Prevention */}
+                        <div className="p-5 bg-indigo-50 rounded-xl border border-indigo-200 text-sm shadow-md">
+                          <h4 className="font-semibold text-base mb-3 text-indigo-800 flex items-center">
                             <Shield className="mr-2 w-5 h-5" />
                             {language === "en"
                               ? "Prevention Tips"
                               : "નિવારણ ટિપ્સ"}
-                          </h3>
-                          <ul className="space-y-2 text-gray-700 list-disc list-inside">
-                            {currentResult.prevention?.map((tip, i) => (
-                              <li key={i} className="pl-2 text-sm">
-                                {tip}
+                          </h4>
+                          <ul className="space-y-2 text-gray-700 list-disc list-inside ml-4">
+                            {currentResult.prevention?.length > 0 ? (
+                              currentResult.prevention.map((tip, i) => (
+                                <li key={i} className="text-sm">
+                                  {tip}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-500">
+                                {language === "en"
+                                  ? "No specific prevention tips listed."
+                                  : "કોઈ ચોક્કસ નિવારણ ટિપ્સ સૂચિબદ્ધ નથી."}
                               </li>
-                            ))}
+                            )}
                           </ul>
                         </div>
                       </div>
@@ -571,21 +681,15 @@ const AiPlantDiseaseAnalyzer = () => {
         </div>
       </main>
 
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-      `}</style>
+      {/* Footer / Disclaimer */}
+      <footer className="p-4 bg-gray-100 border-t border-gray-200 text-center text-xs text-gray-500">
+        <div className="max-w-6xl mx-auto">
+          <p>
+            **Disclaimer:** This tool provides AI-driven preliminary analysis.
+            Always consult a local agricultural expert for critical decisions.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
