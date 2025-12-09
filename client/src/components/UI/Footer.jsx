@@ -203,14 +203,15 @@ export default function FreshiqueFarmFooter() {
 
         {/* Simplified wave (lighter than full SVG) */}
         <div className="h-32 bg-linear-to-t from-green-200/40 to-transparent" />
-        <div className="h-20 bg-green-100/30" />
+        
       </div>
 
       {/* Copyright */}
-      <div className="relative bg-emerald-100/40 backdrop-blur-sm border-t border-emerald-200/50 py-5 text-center">
-        <p className="text-emerald-800/70 text-xs font-medium tracking-wider">
+      <div className="relative bg-emerald-100/40 backdrop-blur-sm border-t  border-emerald-200/50 py-5 text-center">
+        <p className="text-emerald-800/70 text-xs font-medium tracking-wider ">
           © 2025 Freshique Farm • Sustainably Grown • Delivered Fresh
         </p>
+
       </div>
     </footer>
   );

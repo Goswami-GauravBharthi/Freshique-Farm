@@ -11,6 +11,7 @@ import {
   Truck,
   User,
   LogOut,
+  LeafIcon,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUser } from "../../apis/api";
@@ -52,6 +53,7 @@ const Dashboard = () => {
     { to: "/farmer/dashboard/analytics", label: "Analytics", icon: BarChart2 },
     { to: "/farmer/dashboard/community", label: "Community", icon: Users },
     { to: "/farmer/dashboard/orders", label: "Orders", icon: Truck },
+    { to: "/farmer/dashboard/ai-tool", label: "AI Plant Analyzer", icon: LeafIcon },
   ];
 
   return (

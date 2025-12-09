@@ -56,6 +56,7 @@ import ProtectedRoute from "./components/protectedRoutes/ProtectedRoutes.jsx";
 import ProtectedLogin from "./components/protectedRoutes/ProtectedLogin.jsx";
 import ProtectedSignUp from "./components/protectedRoutes/ProtectedSignUp.jsx";
 import ProtectedFarmerDashboard from "./components/protectedRoutes/ProtectedFarmerDashBoard.jsx";
+import AiPlantDiseaseAnalyzer from "./pages/Farmer/AiPlantDiseaseAnalyzer.jsx";
 
 const router = createBrowserRouter([
   {
@@ -111,6 +112,7 @@ const router = createBrowserRouter([
           { path: "products", element: <WatchProducts /> },
           { path: "community", element: <Community /> },
           { path: "orders", element: <Orders /> },
+          {path:"ai-tool",element:<AiPlantDiseaseAnalyzer />}
         ],
       },
     ],
