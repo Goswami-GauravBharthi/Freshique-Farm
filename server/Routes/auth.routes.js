@@ -1,6 +1,7 @@
 // routes/auth.js
 import { Router } from "express";
 import {
+    changePassword,
   getFarmerProfile,
   getFarmerProfileForUser,
   getProfile,
@@ -19,5 +20,7 @@ authRouter.post("/logout", logout);
 authRouter.get("/profile", authMiddleware, getProfile);
 authRouter.get("/farmer-profile", authMiddleware, authFarm, getFarmerProfile);
 authRouter.use("/farmer-profile-user/:id", getFarmerProfileForUser);
+
+authRouter.patch("/change-password", authMiddleware, changePassword);
 
 export default authRouter;

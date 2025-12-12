@@ -129,25 +129,31 @@ export default function FreshiqueFarmFooter() {
           >
             <h3 className="text-xl font-bold text-amber-700 mb-4">Explore</h3>
             <ul className="space-y-3">
-              {[
-                "Our Story",
-                "Seasonal Harvest",
-                "Sustainability",
-                "Farm Blog",
-              ].map((item) => (
-                <li key={item}>
-                  <Link
-                    to="#"
-                    className="group flex items-center gap-2 text-emerald-700 hover:text-amber-600 transition-colors font-medium"
-                  >
-                    <ArrowRight
-                      size={14}
-                      className="opacity-0 -translate-x-3 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
-                    />
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  to="/community"
+                  className="group flex items-center gap-2 text-emerald-700 hover:text-amber-600 transition-colors font-medium"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="group flex items-center gap-2 text-emerald-700 hover:text-amber-600 transition-colors font-medium"
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/my-orders"
+                  className="group flex items-center gap-2 text-emerald-700 hover:text-amber-600 transition-colors font-medium"
+                >
+                  My Orders
+                </Link>
+              </li>
+              
             </ul>
           </motion.div>
 
@@ -203,7 +209,6 @@ export default function FreshiqueFarmFooter() {
 
         {/* Simplified wave (lighter than full SVG) */}
         <div className="h-32 bg-linear-to-t from-green-200/40 to-transparent" />
-        
       </div>
 
       {/* Copyright */}
@@ -211,7 +216,6 @@ export default function FreshiqueFarmFooter() {
         <p className="text-emerald-800/70 text-xs font-medium tracking-wider ">
           © 2025 Freshique Farm • Sustainably Grown • Delivered Fresh
         </p>
-
       </div>
     </footer>
   );

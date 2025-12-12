@@ -39,6 +39,19 @@ export const logoutUser = async () => {
   }
 };
 
+export const changePassword = async ({ newPassword, confirmPassword }) => {
+  try {
+    const { data } = await api.patch("/auth/change-password", {
+      newPassword,
+      confirmPassword,
+    });
+    if (data.success) {
+      return data;
+    }
+  } catch (error) {
+    return error.response.data;
+  }
+};
 
 // ? ======================   PRODUCT APIs (Public)  ====================================
 
@@ -63,7 +76,6 @@ export const fetchProductsByCategory = async () => {
   const res = await api.get("/product/category");
   return res.data.data || { fruits: [], vegetables: [], dairy: [] };
 };
-
 
 // ? =========================    ORDER APIs   =================================
 
@@ -91,7 +103,6 @@ export const fetchUserOrders = async () => {
     return res;
   }
 };
-
 
 // ? =======================    FARMER APIs (Dashboard & Management)  =========================
 

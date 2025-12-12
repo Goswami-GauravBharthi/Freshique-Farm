@@ -17,7 +17,7 @@ import {
   Calendar,
   ShieldCheck,
 } from "lucide-react";
-import { logoutUser } from "../apis/api";
+import { changePassword, logoutUser } from "../apis/api";
 import { setLogout } from "../store/authSlice";
 import toast from "react-hot-toast";
 import { getFavorites, removeFavorite } from "../utils/favorites";
@@ -80,8 +80,14 @@ export default function ProfilePage() {
 
       setLoading(true);
       try {
-        // await changePasswordAPI({ newPassword });
-        toast.success("Password changed successfully!");
+
+        const res = await changePassword({ newPassword, confirmPassword });
+        if (res.success) {
+          toast.success("Password changed successfully!");
+        } else {
+          toast.error(res.message || "Failed to change password");
+        }
+
         setShowPasswordModal(false);
         setNewPassword("");
         setConfirmPassword("");

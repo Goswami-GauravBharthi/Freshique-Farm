@@ -11,9 +11,8 @@ import {
   Shield,
   UploadCloud,
   Globe,
-  XCircle, // Used for the clear button for better visibility
-  TrendingUp, // For confidence/severity indicator
-  Heart, // For healthy status
+  XCircle, 
+    TrendingUp,
 } from "lucide-react";
 import { analyzePlantImage } from "../../apis/aiApi/";
 

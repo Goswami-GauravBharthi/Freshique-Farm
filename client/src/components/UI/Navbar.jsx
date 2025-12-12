@@ -1,5 +1,5 @@
 // src/components/layout/Navbar.tsx
-import {  useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -8,11 +8,10 @@ import {
   ShoppingBasket,
   Home,
   MessageCircleCode,
+  ShoppingBag,
+
 } from "lucide-react";
 import { useSelector } from "react-redux";
-
-
-
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -67,18 +66,21 @@ export default function Navbar() {
 
             {/* About & Contact - Same */}
             <div className="flex gap-6">
-              {/* <Link
-                to="/about"
-                className="text-gray-600 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"
-              >
-                About
-              </Link> */}
               <Link
                 to="/community"
-                className="text-gray-600 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"
+                className="text-gray-600 flex gap-2 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"
               >
                 <span className="hidden md:block">Community</span>
-                <MessageCircleCode className="block md:hidden" />
+                <MessageCircleCode className="block " />
+              </Link>
+              <Link
+                to="/my-orders"
+                className="text-gray-600 flex gap-2 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"
+              >
+               <span className="hidden md:block">My Orders</span>
+                <span>
+                  <ShoppingBag />
+                </span>{" "}
               </Link>
             </div>
 
