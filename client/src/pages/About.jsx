@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -13,6 +11,7 @@ import {
   Truck,
   HeartHandshake,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // --- Data & content configuration (Separation of Concerns) ---
 const STATS = [
@@ -103,12 +102,12 @@ const AboutPage = () => {
       {/* --- SECTION 1: HERO (Cinematic & Parallax) --- */}
       <section
         ref={targetRef}
-        className="relative h-[90vh] flex items-center justify-center overflow-hidden bg-emerald-950"
+        className="relative h-[90vh] flex items-center justify-center  bg-emerald-950"
       >
         <motion.div style={{ opacity, scale }} className="absolute inset-0 z-0">
           {/* Background Image Placeholder with Gradient Overlay */}
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/50 to-emerald-950" />
+          <div className="absolute inset-0 bg-linear-to-b from-transparent via-emerald-950/50 to-emerald-950" />
         </motion.div>
 
         <div className="relative z-10 container mx-auto px-6 text-center text-white">
@@ -122,12 +121,12 @@ const AboutPage = () => {
             </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-tight">
               Rooted in{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-lime-300">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-lime-300">
                 Trust.
               </span>
               <br />
               Grown for{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-300 to-yellow-200">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-lime-300 to-yellow-200">
                 You.
               </span>
             </h1>
@@ -143,7 +142,7 @@ const AboutPage = () => {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="absolute -bottom-16 md:-bottom-20 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-3/4 max-w-5xl z-20"
+          className="absolute -bottom-16 md:-bottom-28 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-3/4 max-w-5xl z-20"
         >
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 grid grid-cols-2 md:grid-cols-4 gap-8 md:divide-x divide-slate-100">
             {STATS.map((stat, idx) => (
@@ -222,11 +221,16 @@ const AboutPage = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <div className="aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl relative">
+            <div className="aspect-square md:aspect-4/3 rounded-3xl overflow-hidden shadow-2xl relative">
               <img
-                src="https://images.unsplash.com/photo-1595855709940-08d47919a3b2?q=80&w=2070&auto=format&fit=crop"
+                src="https://images.pexels.com/photos/2255935/pexels-photo-2255935.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
                 alt="Farmer holding fresh produce"
                 className="object-cover w-full h-full hover:scale-105 transition-transform duration-700"
+                onError={(e) => {
+                  e.target.onerror = null; // Prevent infinite loops
+                  e.target.src =
+                    "https://placehold.co/600x400?text=Fallback+Image"; // Backup image
+                }}
               />
               {/* Decorative Elements */}
               <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl hidden md:block border border-slate-100">
@@ -290,48 +294,7 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* --- SECTION 4: TIMELINE (History) --- */}
-      <section className="py-24 container mx-auto px-6 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-12 text-center">
-            Growing Together
-          </h2>
 
-          <div className="relative border-l-2 border-emerald-200 ml-4 md:ml-0 md:space-y-12">
-            {TIMELINE.map((item, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="mb-8 md:mb-0 relative pl-8 md:pl-0 md:flex md:items-center md:justify-between group"
-              >
-                {/* Dot */}
-                <div className="absolute left-[-9px] top-0 md:left-1/2 md:-ml-[9px] w-4 h-4 bg-white border-4 border-emerald-500 rounded-full z-10 group-hover:scale-150 transition-transform duration-300" />
-
-                {/* Content */}
-                <div
-                  className={`md:w-[45%] ${
-                    idx % 2 === 0
-                      ? "md:mr-auto md:text-right"
-                      : "md:ml-auto md:order-2"
-                  }`}
-                >
-                  <span className="text-emerald-600 font-bold text-lg">
-                    {item.year}
-                  </span>
-                  <h3 className="text-xl font-bold text-slate-900">
-                    {item.title}
-                  </h3>
-                  <p className="text-slate-600 mt-2">{item.desc}</p>
-                </div>
-                <div className="md:w-[45%] hidden md:block" />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* --- SECTION 5: VISUAL GALLERY (Grid Masonry Style) --- */}
       <section className="py-20 bg-emerald-900 text-white">
@@ -346,9 +309,6 @@ const AboutPage = () => {
                 smiles that power Freshique.
               </p>
             </div>
-            <button className="hidden md:flex items-center gap-2 text-white border border-white/30 px-6 py-3 rounded-full hover:bg-white hover:text-emerald-900 transition mt-6 md:mt-0">
-              View Gallery <ArrowRight size={18} />
-            </button>
           </div>
 
           {/* Simulated Masonry Grid */}
@@ -370,9 +330,9 @@ const AboutPage = () => {
             </div>
             <div className="col-span-1 row-span-2 relative rounded-3xl overflow-hidden group">
               <img
-                src="https://images.unsplash.com/photo-1625246333195-58197bd47d26?q=80&w=1964&auto=format&fit=crop"
+                src="https://images.unsplash.com/photo-1685045760522-ecf11c1ac862?q=80&w=629&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                alt="Farmer Portrait"
+                alt="Farmer hello"
               />
             </div>
             <div className="col-span-1 row-span-1 relative rounded-3xl overflow-hidden group">
@@ -392,7 +352,7 @@ const AboutPage = () => {
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-[3rem] p-12 md:p-24 text-white relative overflow-hidden shadow-2xl"
+          className="bg-linear-to-br from-emerald-500 to-teal-700 rounded-[3rem] p-12 md:p-24 text-white relative overflow-hidden shadow-2xl"
         >
           {/* Background pattern */}
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
@@ -406,12 +366,10 @@ const AboutPage = () => {
               Get 20% off your first farm-direct order.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button className="bg-white text-emerald-800 px-10 py-5 rounded-full font-bold text-lg hover:shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2">
+              <Link  to="/market" className="bg-white text-emerald-800 px-10 py-5 rounded-full font-bold text-lg hover:shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2">
                 Start Shopping <ArrowRight size={20} />
-              </button>
-              <button className="bg-emerald-600/50 border border-emerald-400/30 text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-emerald-600 transition-all">
-                Become a Partner
-              </button>
+              </Link>
+             
             </div>
           </div>
         </motion.div>
