@@ -10,14 +10,15 @@ import {
   MapPin,
   Calendar,
   ChevronDown,
-  ChevronUp,
-  Search,
-  Filter,
   ShoppingBag,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchUserOrders } from "../apis/api";
-import ProductLoading from "../components/UI/Loadings/ProductLoading";
+import { fetchUserOrders } from "../apis/api"; // Ensure this path is correct
+import ProductLoading from "../components/UI/Loadings/ProductLoading"; // Ensure this path is correct
+
+// --- NEW IMPORTS FOR PDF GENERATION ---
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // --- Configuration ---
 const statusConfig = {
@@ -59,23 +60,113 @@ const statusConfig = {
   },
 };
 
+// --- PDF Generation Logic ---
+const generateInvoice = (order) => {
+  const doc = new jsPDF();
+
+  // 1. Header - Company Info
+  doc.setFontSize(20);
+  doc.text("INVOICE", 14, 22);
+
+  doc.setFontSize(10);
+  doc.text("Freshique Farm", 14, 30);
+  doc.text("contact@freshfarm.com", 14, 35);
+
+  // 2. Order Details
+  doc.text(`Order ID: #${order.orderId.toUpperCase()}`, 130, 30); // Moved left slightly for safety
+  doc.text(
+    `Date: ${new Date(order.createdAt).toLocaleDateString("en-IN")}`,
+    130,
+    35
+  );
+  doc.text(`Status: ${order.status.toUpperCase()}`, 130, 40);
+
+  // 3. Billing Details
+  doc.text("Bill To:", 14, 50);
+  doc.setFont("helvetica", "bold");
+  doc.text(order.shippingAddress.fullName, 14, 55);
+  doc.setFont("helvetica", "normal");
+  doc.text(order.shippingAddress.address, 14, 60);
+  doc.text(
+    `${order.shippingAddress.city}, ${order.shippingAddress.state || ""} - ${
+      order.shippingAddress.pincode
+    }`,
+    14,
+    65
+  );
+  doc.text(`Phone: ${order.shippingAddress.phone}`, 14, 70);
+
+  // 4. Table of Items
+  const tableColumn = ["#", "Item Name", "Quantity", "Unit Price", "Total"];
+  const tableRows = [];
+
+  order.items.forEach((item, index) => {
+    const itemData = [
+      index + 1,
+      item.name,
+      `${item.quantity} ${item.unit}`,
+      `Rs. ${item.price}`,
+      `Rs. ${(item.price * item.quantity).toFixed(2)}`,
+    ];
+    tableRows.push(itemData);
+  });
+
+  autoTable(doc, {
+    startY: 80,
+    head: [tableColumn],
+    body: tableRows,
+    theme: "striped",
+    headStyles: { fillColor: [22, 163, 74] },
+  });
+
+  // 5. Summary (FIXED ALIGNMENT)
+  const finalY = doc.lastAutoTable.finalY + 10;
+
+  // X coordinates for alignment
+  const labelX = 140; // Where "Subtotal" starts
+  const valueX = 195; // Where the price ends (Right Aligned) - Moved further right
+
+  // Subtotal
+  doc.text("Subtotal:", labelX, finalY);
+  doc.text(`Rs. ${order.totalAmount.toFixed(2)}`, valueX, finalY, {
+    align: "right",
+  });
+
+  // Delivery Charge
+  doc.text("Delivery Charge:", labelX, finalY + 7);
+  doc.text(`Rs. ${order.deliveryCharge.toFixed(2)}`, valueX, finalY + 7, {
+    align: "right",
+  });
+
+  // Grand Total
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Grand Total:", labelX, finalY + 15);
+  doc.text(
+    `Rs. ${(order.totalAmount + order.deliveryCharge).toFixed(2)}`,
+    valueX,
+    finalY + 15,
+    { align: "right" }
+  );
+
+  // 6. Save PDF
+  doc.save(`Invoice_${order.orderId}.pdf`);
+};
+
 // --- Sub-Components ---
 
-// 1. Order Progress Tracker (Visual Stepper)
+// 1. Order Progress Tracker
 const OrderTracker = React.memo(({ currentStatus }) => {
   if (currentStatus === "cancelled") return null;
 
   const steps = ["Confirmed", "Preparing", "On Way", "Delivered"];
   const currentStep = statusConfig[currentStatus]?.step || 1;
-  // Adjust logic: If step is 1 (Pending), mapped to index -1 effectively for visual logic
-  const activeIndex = currentStep - 2; // shifting for array index
+  const activeIndex = currentStep - 2;
 
   return (
     <div className="w-full py-6 px-2">
       <div className="relative flex items-center justify-between">
-        {/* Background Line */}
         <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full -z-10" />
-        {/* Active Line */}
         <div
           className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-green-500 rounded-full -z-10 transition-all duration-500"
           style={{ width: `${(activeIndex / (steps.length - 1)) * 100}%` }}
@@ -113,7 +204,7 @@ const OrderTracker = React.memo(({ currentStatus }) => {
   );
 });
 
-// 2. Single Order Card (Collapsible)
+// 2. Single Order Card
 const OrderCard = React.memo(({ order, index }) => {
   const [isOpen, setIsOpen] = useState(false);
   const StatusIcon = statusConfig[order.status]?.icon || Clock;
@@ -143,7 +234,7 @@ const OrderCard = React.memo(({ order, index }) => {
           : "shadow-sm border-gray-100 hover:shadow-md hover:border-gray-200"
       }`}
     >
-      {/* --- Card Header (Always Visible) --- */}
+      {/* --- Card Header --- */}
       <div
         onClick={handleToggle}
         className="p-5 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white hover:bg-gray-50/50 transition-colors"
@@ -292,13 +383,18 @@ const OrderCard = React.memo(({ order, index }) => {
                   </div>
                 </div>
               </div>
+              {order?.status.toLowerCase() === "delivered" && (
+                <div className="flex justify-end pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => generateInvoice(order)}
+                    className="text-green-700 hover:text-green-800 text-sm font-semibold hover:underline flex items-center gap-2"
+                  >
+                    Download Invoice
+                  </button>
+                </div>
+              )}
 
-              {/* Footer Actions */}
-              <div className="flex justify-end pt-4 border-t border-gray-200">
-                <button className="text-green-700 hover:text-green-800 text-sm font-semibold hover:underline">
-                  Download Invoice
-                </button>
-              </div>
+              {/* Footer Actions (Download Invoice Button) */}
             </div>
           </motion.div>
         )}
@@ -308,9 +404,8 @@ const OrderCard = React.memo(({ order, index }) => {
 });
 
 // --- Main Page Component ---
-
 export default function MyOrdersPage() {
-  const [filter, setFilter] = useState("all"); // all, active, completed
+  const [filter, setFilter] = useState("all");
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["userOrders"],
     queryFn: fetchUserOrders,
@@ -318,7 +413,6 @@ export default function MyOrdersPage() {
 
   const orders = data?.orders || [];
 
-  // Filter Logic
   const filteredOrders = useMemo(
     () =>
       orders.filter((order) => {
