@@ -60,7 +60,7 @@ export default function Navbar() {
             {/* Logo - Same, but elevated */}
             <div className="flex items-center">
               <Link to="/">
-                <img src="logo.png" alt="" className="w-35  md:w-40" />
+                <img src="/logo.png" alt="" className="w-35  md:w-40" />
               </Link>
             </div>
 

@@ -12,6 +12,7 @@ import cartRouter from "./Routes/cart.routes.js";
 import orderRouter from "./Routes/order.routes.js";
 import analyticsRouter from "./Routes/analytics.routes.js";
 import blogRouter from "./Routes/blog.routes.js";
+import adminRouter from "./Routes/admin.routes.js";
 
 
 //!==================== Database Connection==================================
@@ -20,7 +21,7 @@ connectCloudinary();
 
 const app = express();
 const port = process.env.PORT || 4000;
-const allowedOrigin=process.env.ORIGIN;
+const allowedOrigin = [process.env.ORIGIN, process.env.ORIGIN2];
 
 //!=============================== Middleware================================
 
@@ -42,6 +43,7 @@ app.use("/api/cart",cartRouter)
 app.use("/api/order",orderRouter)
 app.use("/api/analytics",analyticsRouter)
 app.use("/api/blogs", blogRouter);
+app.use("/api/admin", adminRouter);
 
 
 app.listen(port, () => {
