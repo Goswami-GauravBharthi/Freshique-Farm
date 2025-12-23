@@ -21,8 +21,8 @@ export const loginAdmin = (req, res) => {
     // Set Cookie
     res.cookie("adminToken", token, {
       httpOnly: true, // Prevents XSS attacks
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict", // CSRF protection
+      secure: true,
+      sameSite: "none", // CSRF protection
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
