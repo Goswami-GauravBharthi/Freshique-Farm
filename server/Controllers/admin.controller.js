@@ -38,9 +38,10 @@ export const loginAdmin = (req, res) => {
 
 
 export const logoutAdmin = (req, res) => {
-  res.cookie("adminToken", "", {
+  res.clearCookie("adminToken", {
     httpOnly: true,
-    expires: new Date(0),
+    secure: true,
+    sameSite: "none",
   });
   res.status(200).json({ success: true, message: "Logged out successfully" });
 };
