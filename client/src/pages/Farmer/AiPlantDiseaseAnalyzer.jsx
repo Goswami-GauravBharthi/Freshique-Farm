@@ -282,9 +282,9 @@ const AiPlantDiseaseAnalyzer = () => {
 
   return (
     // Mobile-first: Full height, constrained width for readability
-    <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
+    <div className="min-h-screen flex flex-col bg-gray-50 font-sans rounded-2xl">
       {/* Header for Branding/Context */}
-      <header className="bg-green-700 shadow-lg p-4 sticky top-0 z-20">
+      <header className="bg-green-700 shadow-lg p-4 sticky top-0 z-20  rounded-2xl overflow-hidden">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <h1 className="text-xl sm:text-2xl font-extrabold text-white flex items-center">
             <Leaf className="w-6 h-6 mr-2 text-green-300" />
@@ -331,8 +331,9 @@ const AiPlantDiseaseAnalyzer = () => {
         <div className="max-w-6xl mx-auto">
           {/* Main Description */}
           <p className="text-gray-600 mb-6 text-base sm:text-lg">
-            🌾 <b>AI Plant Doctor : </b> Instant Crop Care: Upload a clear image of your plant's leaf
-            or crop for expert AI analysis and practical advice in seconds.
+            🌾 <b>AI Plant Doctor : </b> Instant Crop Care: Upload a clear image
+            of your plant's leaf or crop for expert AI analysis and practical
+            advice in seconds.
           </p>
 
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-2xl space-y-8 border border-gray-100">
@@ -681,7 +682,7 @@ const AiPlantDiseaseAnalyzer = () => {
       </main>
 
       {/* Footer / Disclaimer */}
-      <footer className="p-4 bg-gray-100 border-t border-gray-200 text-center text-xs text-gray-500">
+      <footer className="p-4 bg-gray-100 border-t border-gray-200 text-center text-xs text-gray-500 rounded-3xl">
         <div className="max-w-6xl mx-auto">
           <p>
             **Disclaimer:** This tool provides AI-driven preliminary analysis.
