@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 
-
 import { Blog } from "../models/blog.model.js";
 import { Order } from "../models/order.model.js";
 import { Product } from "../models/product.model.js";
@@ -11,6 +10,8 @@ const ADMIN_PASS = process.env.ADMIN_PASS;
 
 export const loginAdmin = (req, res) => {
   const { email, password } = req.body;
+
+  
 
   if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
     // Generate Token
@@ -29,13 +30,12 @@ export const loginAdmin = (req, res) => {
     return res
       .status(200)
       .json({ success: true, message: "Logged in successfully" });
+  } else {
+    res
+      .status(401)
+      .json({ success: false, message: "Invalid email or password" });
   }
-
-  res
-    .status(401)
-    .json({ success: false, message: "Invalid email or password" });
 };
-
 
 export const logoutAdmin = (req, res) => {
   res.clearCookie("adminToken", {
@@ -46,9 +46,7 @@ export const logoutAdmin = (req, res) => {
   res.status(200).json({ success: true, message: "Logged out successfully" });
 };
 
-
 export const checkAuth = (req, res) => {
-
   res.status(200).json({ success: true, isAuthenticated: true });
 };
 
