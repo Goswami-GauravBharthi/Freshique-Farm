@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useSelector } from "react-redux";
 
+
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -77,7 +78,7 @@ export default function Navbar() {
                 to="/my-orders"
                 className="text-gray-600 flex gap-2 font-semibold text-base hover:text-emerald-600 transition-all duration-300 hover:scale-105"
               >
-               <span className="hidden md:block">My Orders</span>
+                <span className="hidden md:block">My Orders</span>
                 <span>
                   <ShoppingBag />
                 </span>{" "}
@@ -86,6 +87,7 @@ export default function Navbar() {
 
             {/* MARKET PLACE - Same */}
             <div className="hidden md:flex items-center space-x-6">
+          
               <Link
                 to="/market"
                 className="group  gap-2 text-gray-700 hover:text-emerald-600 transition-all duration-300"
@@ -95,7 +97,6 @@ export default function Navbar() {
                   Market
                 </p>
               </Link>
-
               {/* Cart */}
               <Link to="/cart" className="relative group">
                 <ShoppingCart className="w-6 h-6 text-emerald-600 group-hover:text-emerald-700 group-hover:scale-110 transition-all duration-300" />
@@ -109,7 +110,6 @@ export default function Navbar() {
                   Cart
                 </p>
               </Link>
-
               {/* Profile */}
               <button
                 onClick={handleUser}

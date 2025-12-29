@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Trash2, Plus, Minus } from "lucide-react";
 import { useDispatch } from 'react-redux';
 import { removeFromCart, updateQuantity } from '../../../store/cartSlice';
+import { playSound } from '../../../utils/sound';
 
 function SingleCartProduct({item,index}) {
 
@@ -19,6 +20,7 @@ function SingleCartProduct({item,index}) {
           quantity: Number(item.quantity + 1),
         })
       );
+      playSound();
     };
 
     const decrease = () => {
@@ -28,6 +30,7 @@ function SingleCartProduct({item,index}) {
           quantity: Number(item.quantity - 1),
         })
       );
+        playSound();
     };
   return (
     <motion.div

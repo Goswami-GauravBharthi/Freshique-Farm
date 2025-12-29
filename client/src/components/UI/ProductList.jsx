@@ -11,6 +11,7 @@ import { addToCart, fetchCart } from "../../store/cartSlice";
 // Components
 import ProductLoading from "./Loadings/ProductLoading.jsx";
 import FavoriteButton from "./SingleComponent/FavoriteButton.jsx";
+import { playSound } from "../../utils/sound.js";
 
 const ProductList = () => {
   const { searchQuery, city, category, minPrice, maxPrice } = useSelector(
@@ -112,6 +113,11 @@ const ProductCard = React.memo(({ product }) => {
   const { name, _id: productId, pricePerUnit: price, photos, unit } = product;
   const dispatch = useDispatch();
 
+//   const playSound = () => {
+//     const audio = new Audio("/sound/notification.wav");
+//     audio.play();
+//   };
+
   const handleCart = useCallback(
     async (e) => {
       e.preventDefault();
@@ -134,8 +140,11 @@ const ProductCard = React.memo(({ product }) => {
 
       dispatch(addToCart(cartProduct));
       dispatch(fetchCart());
+        playSound();
     },
     [productId, name, price, unit, photos, product.farmer._id, dispatch]
+
+
   );
 
   return (

@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart, fetchCart } from "../store/cartSlice";
 import { fetchSingleProduct } from "../apis/api";
 import ProductDescription from "../utils/ProductDescription";
+import { playSound } from "../utils/sound";
 
 export default function ProductDetail() {
   const { user } = useSelector((state) => state.auth);
@@ -63,6 +64,7 @@ export default function ProductDetail() {
     dispatch(addToCart(cartItem));
     dispatch(fetchCart());
     toast.success(`${item.name} added to cart!`);
+    playSound();
   };
 
   const goToFarmer = () => {
